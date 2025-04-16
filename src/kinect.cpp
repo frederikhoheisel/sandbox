@@ -1,5 +1,7 @@
 #include "kinect.h"
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/image.hpp>
 #include <k4a/k4a.h>
 
 using namespace godot;
@@ -11,6 +13,8 @@ void Kinect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_depth_image"), &Kinect::get_depth_image);
     ClassDB::bind_method(D_METHOD("start_cameras"), &Kinect::start_cameras);
     ClassDB::bind_method(D_METHOD("stop_cameras"), &Kinect::stop_cameras);
+    ClassDB::bind_method(D_METHOD("get_depth_texture"), &Kinect::get_depth_texture);
+    ClassDB::bind_method(D_METHOD("get_placeholder_texture"), &Kinect::get_placeholder_texture);
 }
 
 Kinect::Kinect() {
@@ -39,7 +43,7 @@ bool Kinect::initialize_kinect(int device_index) {
         config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
         config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED; // Set depth mode
         config.color_resolution = K4A_COLOR_RESOLUTION_720P; // Enable color camera
-        config.camera_fps = K4A_FRAMES_PER_SECOND_5; // Set frame rate
+        config.camera_fps = K4A_FRAMES_PER_SECOND_30; // Set frame rate
 
         UtilityFunctions::print("Kinect device initialized successfully.");
         return true;
@@ -115,7 +119,7 @@ PackedByteArray Kinect::get_depth_image() {
     }
 
     k4a_capture_t capture = nullptr;
-    if (k4a_device_get_capture(kinect_device, &capture, 3000) == K4A_WAIT_RESULT_SUCCEEDED) {
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) == K4A_WAIT_RESULT_SUCCEEDED) {
         k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
         if (depth_image != nullptr) {
             uint8_t *buffer = k4a_image_get_buffer(depth_image);
@@ -135,4 +139,76 @@ PackedByteArray Kinect::get_depth_image() {
     }
 
     return depth_data;
+}
+
+Ref<ImageTexture> Kinect::get_depth_texture() {
+    if (kinect_device == nullptr) {
+        UtilityFunctions::print("Kinect device is not initialized.");
+        return nullptr;
+    }
+
+    k4a_capture_t capture = nullptr;
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to capture frame.");
+        return nullptr;
+    }
+
+    k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == nullptr) {
+        UtilityFunctions::print("Failed to get depth image.");
+        k4a_capture_release(capture);
+        return nullptr;
+    }
+
+    uint8_t *buffer = k4a_image_get_buffer(depth_image);
+    int width = k4a_image_get_width_pixels(depth_image);
+    int height = k4a_image_get_height_pixels(depth_image);
+    int stride = k4a_image_get_stride_bytes(depth_image);
+
+    if (depth_data.size() != width * height) {
+        depth_data.resize(width * height);
+    }
+    uint8_t *depth_data_ptr = depth_data.ptrw();
+
+    if (stride == width) {
+        memcpy(depth_data_ptr, buffer, width * height);
+    } else {
+        for (int y = 0; y < height; y++) {
+            memcpy(depth_data_ptr + y * width, buffer + y * stride, width);
+        }
+    }
+
+    if (depth_texture.is_null()) {
+        depth_texture.instantiate();
+    }
+
+    Ref<Image> image;
+    image = Image::create(width, height, false, Image::FORMAT_L8);
+    memcpy(image->ptrw(), depth_data_ptr, width * height);
+
+    depth_texture = ImageTexture::create_from_image(image);
+
+    k4a_image_release(depth_image);
+    k4a_capture_release(capture);
+
+    return depth_texture;
+}
+
+Ref<ImageTexture> Kinect::get_placeholder_texture() {
+    Ref<ImageTexture> depth_texture;
+    Ref<Image> test_image;
+
+    test_image = Image::create(256, 256, false, Image::FORMAT_L8);
+    test_image->fill(Color(1, 1, 1)); // Fill with white
+
+    depth_texture = ImageTexture::create_from_image(test_image);
+
+    if (depth_texture->get_size() == Vector2(0, 0)) {
+        UtilityFunctions::print("Failed to create ImageTexture from placeholder.");
+    } else {
+        UtilityFunctions::print(String("Placeholder ImageTexture created successfully with size: {0}")
+            .format(Array::make(depth_texture->get_size())));
+    }
+
+    return depth_texture;
 }
