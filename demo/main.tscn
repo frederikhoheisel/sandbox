@@ -1,13 +1,34 @@
-[gd_scene load_steps=3 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=7 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
-[ext_resource type="Texture2D" uid="uid://c1kebkkytjiik" path="res://icon.svg" id="2_0xm2m"]
+[ext_resource type="Shader" uid="uid://cavv3evfc6dgf" path="res://main.gdshader" id="2_h2yge"]
+[ext_resource type="Shader" uid="uid://cdtcfjx863ewo" path="res://terrain.gdshader" id="3_h2yge"]
 
-[node name="Main" type="Node2D"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
+shader = ExtResource("2_h2yge")
+shader_parameter/max_depth_mm = 10000.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1bvp3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lquwl"]
+render_priority = 0
+shader = ExtResource("3_h2yge")
+shader_parameter/max_depth_mm = 1000.0
+shader_parameter/height_scale = 1.0
+
+[node name="Main" type="Node3D"]
 script = ExtResource("1_ig7tw")
 
 [node name="Kinect" type="Kinect" parent="."]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(525, 339)
-texture = ExtResource("2_0xm2m")
+visible = false
+material = SubResource("ShaderMaterial_1bvp3")
+position = Vector2(650, 325)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_1bvp3")
+surface_material_override/0 = SubResource("ShaderMaterial_lquwl")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.909947, 0.414725, 0, -0.414725, 0.909947, 0, 0.715919, 1.70754)

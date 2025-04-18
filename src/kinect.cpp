@@ -148,7 +148,7 @@ Ref<ImageTexture> Kinect::get_depth_texture() {
     }
 
     k4a_capture_t capture = nullptr;
-    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+    if (k4a_device_get_capture(kinect_device, &capture, 1000) != K4A_WAIT_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to capture frame.");
         return nullptr;
     }
@@ -160,31 +160,28 @@ Ref<ImageTexture> Kinect::get_depth_texture() {
         return nullptr;
     }
 
-    uint8_t *buffer = k4a_image_get_buffer(depth_image);
+    uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
     int width = k4a_image_get_width_pixels(depth_image);
     int height = k4a_image_get_height_pixels(depth_image);
     int stride = k4a_image_get_stride_bytes(depth_image);
 
-    if (depth_data.size() != width * height) {
-        depth_data.resize(width * height);
+    // Resize the depth data buffer to match the image size
+    if (depth_data.size() != width * height * sizeof(float)) {
+        depth_data.resize(width * height * sizeof(float));
     }
-    uint8_t *depth_data_ptr = depth_data.ptrw();
+    float *depth_data_ptr = reinterpret_cast<float *>(depth_data.ptrw());
 
-    if (stride == width) {
-        memcpy(depth_data_ptr, buffer, width * height);
-    } else {
-        for (int y = 0; y < height; y++) {
-            memcpy(depth_data_ptr + y * width, buffer + y * stride, width);
+    // copy and convert to floats
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int src_index = y * (stride / sizeof(uint16_t)) + x;
+            int dst_index = y * width + x;
+            depth_data_ptr[dst_index] = static_cast<float>(buffer[src_index]);
         }
     }
 
-    if (depth_texture.is_null()) {
-        depth_texture.instantiate();
-    }
-
-    Ref<Image> image;
-    image = Image::create(width, height, false, Image::FORMAT_L8);
-    memcpy(image->ptrw(), depth_data_ptr, width * height);
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
+    memcpy(image->ptrw(), depth_data_ptr, width * height * sizeof(float));
 
     depth_texture = ImageTexture::create_from_image(image);
 
