@@ -6,7 +6,7 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
-shader_parameter/max_depth_mm = 10000.0
+shader_parameter/depth_scale = 0.1
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_1bvp3"]
 
@@ -22,7 +22,6 @@ script = ExtResource("1_ig7tw")
 [node name="Kinect" type="Kinect" parent="."]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-visible = false
 material = SubResource("ShaderMaterial_1bvp3")
 position = Vector2(650, 325)
 
