@@ -110,45 +110,14 @@ int Kinect::get_connected_device_count() {
     return k4a_device_get_installed_count();
 }
 
-PackedByteArray Kinect::get_depth_image() {
-    PackedByteArray depth_data;
-
-    if (kinect_device == nullptr) {
-        UtilityFunctions::print("Kinect device is not initialized.");
-        return depth_data;
-    }
-
-    k4a_capture_t capture = nullptr;
-    if (k4a_device_get_capture(kinect_device, &capture, 5000) == K4A_WAIT_RESULT_SUCCEEDED) {
-        k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
-        if (depth_image != nullptr) {
-            uint8_t *buffer = k4a_image_get_buffer(depth_image);
-            size_t buffer_size = k4a_image_get_size(depth_image);
-
-            depth_data.resize(buffer_size);
-            memcpy(depth_data.ptrw(), buffer, buffer_size);
-
-            k4a_image_release(depth_image);
-        } else {
-            UtilityFunctions::print("Failed to get depth image.");
-        }
-
-        k4a_capture_release(capture);
-    } else {
-        UtilityFunctions::print("Failed to capture frame.");
-    }
-
-    return depth_data;
-}
-
-Ref<ImageTexture> Kinect::get_depth_texture() {
+Ref<Image> Kinect::get_depth_image() {
     if (kinect_device == nullptr) {
         UtilityFunctions::print("Kinect device is not initialized.");
         return nullptr;
     }
 
     k4a_capture_t capture = nullptr;
-    if (k4a_device_get_capture(kinect_device, &capture, 1000) != K4A_WAIT_RESULT_SUCCEEDED) {
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to capture frame.");
         return nullptr;
     }
@@ -163,25 +132,48 @@ Ref<ImageTexture> Kinect::get_depth_texture() {
     uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
     int width = k4a_image_get_width_pixels(depth_image);
     int height = k4a_image_get_height_pixels(depth_image);
-    int stride = k4a_image_get_stride_bytes(depth_image);
 
-    // Resize the depth data buffer to match the image size
-    if (depth_data.size() != width * height * sizeof(float)) {
-        depth_data.resize(width * height * sizeof(float));
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
+    memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
+
+    /*
+    float *image_data = reinterpret_cast<float *>(image->ptrw());
+    const float max_depth_mm = 10000.0f; // Maximum depth range in millimeters
+    for (size_t i = 0; i < width * height; i++) {
+        image_data[i] = static_cast<float>(buffer[i]) / max_depth_mm; // Normalize depth to [0.0, 1.0]
+    } */
+
+    k4a_image_release(depth_image);
+    k4a_capture_release(capture);
+
+    return image;
+}
+
+Ref<ImageTexture> Kinect::get_depth_texture() {
+    if (kinect_device == nullptr) {
+        UtilityFunctions::print("Kinect device is not initialized.");
+        return nullptr;
     }
-    float *depth_data_ptr = reinterpret_cast<float *>(depth_data.ptrw());
 
-    // copy and convert to floats
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            int src_index = y * (stride / sizeof(uint16_t)) + x;
-            int dst_index = y * width + x;
-            depth_data_ptr[dst_index] = static_cast<float>(buffer[src_index]);
-        }
+    k4a_capture_t capture = nullptr;
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to capture frame.");
+        return nullptr;
     }
 
-    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
-    memcpy(image->ptrw(), depth_data_ptr, width * height * sizeof(float));
+    k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == nullptr) {
+        UtilityFunctions::print("Failed to get depth image.");
+        k4a_capture_release(capture);
+        return nullptr;
+    }
+
+    uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+    int width = k4a_image_get_width_pixels(depth_image);
+    int height = k4a_image_get_height_pixels(depth_image);
+
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
+    memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
 
     depth_texture = ImageTexture::create_from_image(image);
 

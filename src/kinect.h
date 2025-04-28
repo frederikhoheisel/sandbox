@@ -1,8 +1,10 @@
 #ifndef KINECT_H
 #define KINECT_H
 
-#include <godot_cpp/classes/sprite2d.hpp>
 #include <godot_cpp/classes/image_texture.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/classes/node.hpp>
 #include <k4a/k4a.h>
 
 namespace godot {
@@ -30,7 +32,7 @@ public:
     bool start_cameras();
     bool stop_cameras();
     int get_connected_device_count();
-    PackedByteArray get_depth_image();
+    Ref<Image> get_depth_image();
     Ref<ImageTexture> Kinect::get_depth_texture();
     Ref<ImageTexture> Kinect::get_placeholder_texture();
 };

@@ -1,0 +1,87 @@
+[gd_scene load_steps=9 format=3 uid="uid://bhiygikt77fg6"]
+
+[ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="Shader" uid="uid://cavv3evfc6dgf" path="res://main.gdshader" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://image_conversion.gd" id="3_h2yge"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
+shader = ExtResource("2_h2yge")
+
+[sub_resource type="HeightMapShape3D" id="HeightMapShape3D_0xm2m"]
+
+[sub_resource type="GDScript" id="GDScript_0xm2m"]
+script/source = "extends Node3D
+
+var look_sensitivity : float = 0.001
+var speed : float = 1.0
+
+func _process(delta: float) -> void:
+	if Input.is_action_pressed(\"sprint\"):
+		speed = 3.0
+	else:
+		speed = 1.0
+	var input_plane_dir = Input.get_vector(\"left\", \"right\", \"forward\", \"backward\").normalized()
+	var input_height_dir = Input.get_axis(\"down\", \"up\")
+	position += self.global_transform.basis * Vector3(input_plane_dir.x, input_height_dir, input_plane_dir.y) * speed * delta
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	elif event.is_action_pressed(\"ui_cancel\"):
+		if Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE:
+			get_tree().quit()
+		else:
+			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	
+	if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+		if event is InputEventMouseMotion:
+			rotate_y(-event.relative.x * look_sensitivity)
+			%Camera3D.rotate_x(-event.relative.y * look_sensitivity)
+			%Camera3D.rotation.x = clamp(%Camera3D.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+"
+
+[sub_resource type="SphereMesh" id="SphereMesh_0xm2m"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_h2yge"]
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_ig7tw")
+
+[node name="Kinect" type="Kinect" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_1bvp3")
+position = Vector2(650, 325)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+unique_name_in_owner = true
+skeleton = NodePath("../..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+unique_name_in_owner = true
+shape = SubResource("HeightMapShape3D_0xm2m")
+
+[node name="Player" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75005, 1.85465)
+script = SubResource("GDScript_0xm2m")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+unique_name_in_owner = true
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.37657, 0)
+omni_range = 999999.0
+
+[node name="RigidBody3D" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.938524, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
+mesh = SubResource("SphereMesh_0xm2m")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RigidBody3D"]
+shape = SubResource("SphereShape3D_h2yge")
+
+[node name="ImageConversion" type="Node" parent="."]
+script = ExtResource("3_h2yge")
