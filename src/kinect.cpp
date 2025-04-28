@@ -135,6 +135,7 @@ Ref<Image> Kinect::get_depth_image() {
 
     Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
     memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
+<<<<<<< HEAD
 
     /*
     float *image_data = reinterpret_cast<float *>(image->ptrw());
@@ -174,6 +175,8 @@ Ref<ImageTexture> Kinect::get_depth_texture() {
 
     Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
     memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
+=======
+>>>>>>> 7f964950910e4c52801eb79b4a5e9c1da272d002
 
     depth_texture = ImageTexture::create_from_image(image);
 

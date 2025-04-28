@@ -29,6 +29,7 @@ func _ready() -> void:
 	kinect.initialize_kinect(0)
 	kinect.start_cameras()
 	depth_texture = kinect.get_depth_texture()
+<<<<<<< HEAD
 	material.set("shader_parameter/depth_texture", depth_texture)
 	
 	var depth_image_rg8 : Image = kinect.get_depth_image()
@@ -69,6 +70,8 @@ func _ready() -> void:
 	"""
 	
 	%MeshInstance3D.material_override = material
+=======
+>>>>>>> 7f964950910e4c52801eb79b4a5e9c1da272d002
 
 func _process(_delta) -> void:
 	if Input.is_action_just_pressed("take_image"):
