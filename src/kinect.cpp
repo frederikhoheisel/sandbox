@@ -10,10 +10,12 @@ void Kinect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("initialize_kinect", "device_index"), &Kinect::initialize_kinect);
     ClassDB::bind_method(D_METHOD("close_kinect"), &Kinect::close_kinect);
     ClassDB::bind_method(D_METHOD("get_connected_device_count"), &Kinect::get_connected_device_count);
-    ClassDB::bind_method(D_METHOD("get_depth_image"), &Kinect::get_depth_image);
+    ClassDB::bind_method(D_METHOD("get_depth_image_rf"), &Kinect::get_depth_image_rf);
+    ClassDB::bind_method(D_METHOD("get_depth_image_rg8"), &Kinect::get_depth_image_rg8);
     ClassDB::bind_method(D_METHOD("start_cameras"), &Kinect::start_cameras);
     ClassDB::bind_method(D_METHOD("stop_cameras"), &Kinect::stop_cameras);
-    ClassDB::bind_method(D_METHOD("get_depth_texture"), &Kinect::get_depth_texture);
+    ClassDB::bind_method(D_METHOD("get_depth_texture_rg8"), &Kinect::get_depth_texture_rg8);
+    ClassDB::bind_method(D_METHOD("get_depth_texture_rf"), &Kinect::get_depth_texture_rf);
     ClassDB::bind_method(D_METHOD("get_placeholder_texture"), &Kinect::get_placeholder_texture);
 }
 
@@ -110,7 +112,7 @@ int Kinect::get_connected_device_count() {
     return k4a_device_get_installed_count();
 }
 
-Ref<Image> Kinect::get_depth_image() {
+Ref<Image> Kinect::get_depth_image_rf() {
     if (kinect_device == nullptr) {
         UtilityFunctions::print("Kinect device is not initialized.");
         return nullptr;
@@ -133,16 +135,13 @@ Ref<Image> Kinect::get_depth_image() {
     int width = k4a_image_get_width_pixels(depth_image);
     int height = k4a_image_get_height_pixels(depth_image);
 
-    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
-    memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
-<<<<<<< HEAD
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
 
-    /*
     float *image_data = reinterpret_cast<float *>(image->ptrw());
-    const float max_depth_mm = 10000.0f; // Maximum depth range in millimeters
+    const float max_depth_mm = 256.0f; // Maximum depth range in millimeters
     for (size_t i = 0; i < width * height; i++) {
         image_data[i] = static_cast<float>(buffer[i]) / max_depth_mm; // Normalize depth to [0.0, 1.0]
-    } */
+    }
 
     k4a_image_release(depth_image);
     k4a_capture_release(capture);
@@ -150,7 +149,46 @@ Ref<Image> Kinect::get_depth_image() {
     return image;
 }
 
-Ref<ImageTexture> Kinect::get_depth_texture() {
+Ref<ImageTexture> Kinect::get_depth_texture_rf() {
+    if (kinect_device == nullptr) {
+        UtilityFunctions::print("Kinect device is not initialized.");
+        return nullptr;
+    }
+
+    k4a_capture_t capture = nullptr;
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to capture frame.");
+        return nullptr;
+    }
+
+    k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == nullptr) {
+        UtilityFunctions::print("Failed to get depth image.");
+        k4a_capture_release(capture);
+        return nullptr;
+    }
+
+    uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+    int width = k4a_image_get_width_pixels(depth_image);
+    int height = k4a_image_get_height_pixels(depth_image);
+
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
+
+    float *image_data = reinterpret_cast<float *>(image->ptrw());
+    const float max_depth_mm = 256.0f; // Maximum depth range in millimeters
+    for (size_t i = 0; i < width * height; i++) {
+        image_data[i] = static_cast<float>(buffer[i]) / max_depth_mm; // Normalize depth to [0.0, 1.0]
+    }
+
+    depth_texture = ImageTexture::create_from_image(image);
+
+    k4a_image_release(depth_image);
+    k4a_capture_release(capture);
+
+    return depth_texture;
+}
+
+Ref<Image> Kinect::get_depth_image_rg8() {
     if (kinect_device == nullptr) {
         UtilityFunctions::print("Kinect device is not initialized.");
         return nullptr;
@@ -175,8 +213,38 @@ Ref<ImageTexture> Kinect::get_depth_texture() {
 
     Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
     memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
-=======
->>>>>>> 7f964950910e4c52801eb79b4a5e9c1da272d002
+
+    k4a_image_release(depth_image);
+    k4a_capture_release(capture);
+
+    return image;
+}
+
+Ref<ImageTexture> Kinect::get_depth_texture_rg8() {
+    if (kinect_device == nullptr) {
+        UtilityFunctions::print("Kinect device is not initialized.");
+        return nullptr;
+    }
+
+    k4a_capture_t capture = nullptr;
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to capture frame.");
+        return nullptr;
+    }
+
+    k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == nullptr) {
+        UtilityFunctions::print("Failed to get depth image.");
+        k4a_capture_release(capture);
+        return nullptr;
+    }
+
+    uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+    int width = k4a_image_get_width_pixels(depth_image);
+    int height = k4a_image_get_height_pixels(depth_image);
+
+    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
+    memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
 
     depth_texture = ImageTexture::create_from_image(image);
 

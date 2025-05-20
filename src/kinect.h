@@ -32,8 +32,10 @@ public:
     bool start_cameras();
     bool stop_cameras();
     int get_connected_device_count();
-    Ref<Image> get_depth_image();
-    Ref<ImageTexture> Kinect::get_depth_texture();
+    Ref<Image> get_depth_image_rf();
+    Ref<Image> get_depth_image_rg8();
+    Ref<ImageTexture> Kinect::get_depth_texture_rg8();
+    Ref<ImageTexture> Kinect::get_depth_texture_rf();
     Ref<ImageTexture> Kinect::get_placeholder_texture();
 };
 

@@ -6,10 +6,6 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
-<<<<<<< HEAD
-=======
-shader_parameter/depth_scale = 0.1
->>>>>>> 7f964950910e4c52801eb79b4a5e9c1da272d002
 
 [sub_resource type="HeightMapShape3D" id="HeightMapShape3D_0xm2m"]
 

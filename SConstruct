@@ -40,7 +40,7 @@ sources = Glob("src/*.cpp")
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
-        "demo/bin/libkinect.{}.{}.framework/libkinect.{}.{}".format(
+        "sandbox-(4.4)/bin/libkinect.{}.{}.framework/libkinect.{}.{}".format(
             env["platform"], env["target"], env["platform"], env["target"]
         ),
         source=sources,
@@ -48,17 +48,17 @@ if env["platform"] == "macos":
 elif env["platform"] == "ios":
     if env["ios_simulator"]:
         library = env.StaticLibrary(
-            "demo/bin/libkinect.{}.{}.simulator.a".format(env["platform"], env["target"]),
+            "sandbox-(4.4)/bin/libkinect.{}.{}.simulator.a".format(env["platform"], env["target"]),
             source=sources,
         )
     else:
         library = env.StaticLibrary(
-            "demo/bin/libkinect.{}.{}.a".format(env["platform"], env["target"]),
+            "sandbox-(4.4)/bin/libkinect.{}.{}.a".format(env["platform"], env["target"]),
             source=sources,
         )
 else:
     library = env.SharedLibrary(
-        "demo/bin/libkinect{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        "sandbox-(4.4)/bin/libkinect{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
         source=sources,
     )
 

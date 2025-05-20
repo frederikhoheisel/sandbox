@@ -1,11 +1,14 @@
 [gd_scene load_steps=9 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
-[ext_resource type="Shader" uid="uid://cavv3evfc6dgf" path="res://main.gdshader" id="2_h2yge"]
+[ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://texture_filter.gdshader" id="2_h2yge"]
 [ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://image_conversion.gd" id="3_h2yge"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
+shader_parameter/edge_threshold = 0.1
+shader_parameter/min_depth = 0.5
+shader_parameter/max_depth = 3.0
 
 [sub_resource type="HeightMapShape3D" id="HeightMapShape3D_0xm2m"]
 
@@ -49,17 +52,23 @@ script = ExtResource("1_ig7tw")
 
 [node name="Kinect" type="Kinect" parent="."]
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-material = SubResource("ShaderMaterial_1bvp3")
-position = Vector2(650, 325)
-
-[node name="StaticBody3D" type="StaticBody3D" parent="."]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="StaticBody3D"]
+[node name="SubViewport" type="SubViewport" parent="."]
 unique_name_in_owner = true
-skeleton = NodePath("../..")
+size = Vector2i(640, 576)
+render_target_update_mode = 4
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+[node name="FilteredTexture" type="Sprite2D" parent="SubViewport"]
+unique_name_in_owner = true
+material = SubResource("ShaderMaterial_1bvp3")
+centered = false
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+unique_name_in_owner = true
+extra_cull_margin = 100.0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
 unique_name_in_owner = true
 shape = SubResource("HeightMapShape3D_0xm2m")
 

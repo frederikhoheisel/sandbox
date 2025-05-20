@@ -4,6 +4,8 @@ extends Node3D
 @onready var collision_shape := %CollisionShape3D
 @onready var heightmap_shape := HeightMapShape3D.new()
 @onready var image_conversion := $ImageConversion
+@onready var filtered_texture: Sprite2D = %FilteredTexture
+
 var running := false
 var depth_texture : ImageTexture
 
@@ -12,74 +14,73 @@ const DEPTH := 9.0
 const PIXEL_WIDTH := 640
 const PIXEL_DEPTH := 576
 
+const sandbox_scale := .5
+
 func _ready() -> void:
-	# setup of the plane mesh
+	## setup of the plane mesh
 	var mesh := PlaneMesh.new()
 	mesh.size = Vector2(WIDTH, DEPTH)
 	mesh.subdivide_width = PIXEL_WIDTH
 	mesh.subdivide_depth = PIXEL_DEPTH
 	%MeshInstance3D.mesh = mesh
+	%MeshInstance3D.scale *= sandbox_scale
 	
-	# setup of the material and corresponding shader
-	var shader := load("res://terrain.gdshader")
-	var material := ShaderMaterial.new()
-	material.shader = shader
+	## no culling for the terrain mesh
+	## solved by increasing extra cull margin on %MeshInstance3D
+	# var id = %MeshInstance3D.get_instance_id()
+	# RenderingServer.instance_set_ignore_culling(id, true)
 	
-	# start the kinect and take one depth image to give to the shader
-	kinect.initialize_kinect(0)
-	kinect.start_cameras()
-	depth_texture = kinect.get_depth_texture()
-	material.set("shader_parameter/depth_texture", depth_texture)
+	## setup of the material and corresponding shader for the FilteredTexture
+	## directly done in the editor
+	#var filter_shader := load("res://texture_filter.gdshader")
+	#var filter_material := ShaderMaterial.new()
+	#filter_material.shader = filter_shader
 	
-	var depth_image_rg8 : Image = kinect.get_depth_image()
-	var depth_image_rf : Image = image_conversion.process_image(depth_image_rg8)
+	## setup of the material and corresponding shader for the terrain
+	var terrain_shader := load("res://terrain.gdshader")
+	var terrain_material := ShaderMaterial.new()
+	terrain_material.shader = terrain_shader
 	
-	# setup of the collision shape
+	## setup of the collision shape
 	heightmap_shape.map_width = 2
 	heightmap_shape.map_depth = 2
-	heightmap_shape.update_map_data_from_image(depth_image_rf, 0.0, 1.0)
 	collision_shape.shape = heightmap_shape
-	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -3.0, DEPTH / PIXEL_DEPTH)
+	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
+	collision_shape.scale *= sandbox_scale
 	
-	"""
-	# Debugging of the detph texture
-	var img = depth_texture.get_image()
-	print("=== Depth Texture Analysis ===")
-	print("Resolution: ", img.get_width(), " x ", img.get_height())
+	## start the kinect and cameras
+	kinect.initialize_kinect(0)
+	kinect.start_cameras()
 	
-	var min_val = 999999
-	var max_val = 0
-	var sample_points = [
-		Vector2(0, 0),
-		Vector2(img.get_width()/2, img.get_height()/2),
-		Vector2(img.get_width()-1, img.get_height()-1)
-	]
-	for i in range(50):
-		var random_x = randi() % img.get_width()
-		var random_y = randi() % img.get_height()
-		sample_points.append(Vector2(random_x, random_y))
-	for point in sample_points:
-		var pixel = img.get_pixel(int(point.x), int(point.y))
-		var depth_value = pixel.r + pixel.g * 256.0
-		print("Pixel at (", point.x, ",", point.y, "): R=", pixel.r, " G=", pixel.g, " Combined=", depth_value)
-		min_val = min(min_val, depth_value)
-		max_val = max(max_val, depth_value)
-	print("Estimated depth range: ", min_val, " to ", max_val)
-	print("===========================")
-	"""
-	
-	%MeshInstance3D.material_override = material
+	## do everything once
+	depth_texture = kinect.get_depth_texture_rf()
+	var modified_texture := await filter_texture(depth_texture)
+	%MeshInstance3D.material_override = terrain_material
+	%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)
+	set_heightmap(modified_texture)
+
+## filters a texture with a shader and returns it
+func filter_texture(texture: Texture2D) -> Texture2D:
+	filtered_texture.texture = texture
+	filtered_texture.material.set("shader_parameter/depth_texture", texture)
+	await get_tree().process_frame
+	return %SubViewport.get_texture()
+
+## converts texture to image and applies it to the heightmapshape
+func set_heightmap(texture: Texture2D) -> void:
+	var image = texture.get_image()
+	image.convert(Image.FORMAT_RF)
+	heightmap_shape.update_map_data_from_image(image, 0.0, 1.0)
 
 func _process(_delta) -> void:
 	if Input.is_action_just_pressed("take_image"):
 		running = false if running else true
 		print("toggle recording to: " + str(running))
 	if running:
-		depth_texture = kinect.get_depth_texture()
-		%MeshInstance3D.material_override.set("shader_parameter/depth_texture", depth_texture)
-		var image = kinect.get_depth_image()
-		heightmap_shape.update_map_data_from_image(image_conversion.process_image(image), 0.0, 1.0)
-		#$Sprite2D.texture = ImageTexture.create_from_image(image)
+		var texture = kinect.get_depth_texture_rf()
+		var modified_texture = await filter_texture(texture)
+		%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)
+		set_heightmap(modified_texture)
 
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
