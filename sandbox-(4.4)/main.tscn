@@ -1,9 +1,26 @@
 [gd_scene load_steps=13 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
-[ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://texture_filter.gdshader" id="2_h2yge"]
-[ext_resource type="Script" uid="uid://cuw714rw4fm5b" path="res://sandbox.gd" id="3_1bvp3"]
-[ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://image_conversion.gd" id="3_h2yge"]
+[ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://src/sandbox/texture_filter.gdshader" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://cuw714rw4fm5b" path="res://src/sandbox/sandbox.gd" id="3_1bvp3"]
+[ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://src/sandbox/image_conversion.gd" id="3_h2yge"]
+[ext_resource type="PackedScene" uid="uid://biomxbk85ryjy" path="res://src/xrplayer/xr_player.tscn" id="5_lquwl"]
+[ext_resource type="PackedScene" uid="uid://clc5dre31iskm" path="res://addons/godot-xr-tools/xr/start_xr.tscn" id="6_7mycd"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1bvp3"]
+sky_top_color = Color(0.258394, 0.5366, 0.835728, 1)
+sky_horizon_color = Color(0.768553, 0.835513, 0.893761, 1)
+ground_bottom_color = Color(0.275927, 0.265565, 0.199428, 1)
+ground_horizon_color = Color(0.768553, 0.835513, 0.893761, 1)
+
+[sub_resource type="Sky" id="Sky_lquwl"]
+sky_material = SubResource("ProceduralSkyMaterial_1bvp3")
+
+[sub_resource type="Environment" id="Environment_7mycd"]
+background_mode = 2
+sky = SubResource("Sky_lquwl")
+tonemap_mode = 2
+glow_enabled = true
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
@@ -17,16 +34,17 @@ shader_parameter/max_depth = 3.0
 script/source = "extends Node3D
 
 var look_sensitivity : float = 0.001
-var speed : float = 1.0
+@export var speed : float = 1.0
 
 func _process(delta: float) -> void:
+	var v = speed
 	if Input.is_action_pressed(\"sprint\"):
-		speed = 3.0
+		v = speed * 3.0
 	else:
-		speed = 1.0
+		v = speed
 	var input_plane_dir = Input.get_vector(\"left\", \"right\", \"forward\", \"backward\").normalized()
 	var input_height_dir = Input.get_axis(\"up\", \"down\")
-	position += self.global_transform.basis * Vector3(input_plane_dir.x, input_height_dir, input_plane_dir.y) * speed * delta
+	position += self.global_transform.basis * Vector3(input_plane_dir.x, input_height_dir, input_plane_dir.y) * v * delta
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
@@ -44,25 +62,16 @@ func _unhandled_input(event: InputEvent) -> void:
 			%Camera3D.rotation.x = clamp(%Camera3D.rotation.x, deg_to_rad(-90), deg_to_rad(90))
 "
 
-[sub_resource type="SphereMesh" id="SphereMesh_0xm2m"]
-
-[sub_resource type="SphereShape3D" id="SphereShape3D_h2yge"]
-
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_h2yge"]
-
-[sub_resource type="Sky" id="Sky_1bvp3"]
-sky_material = SubResource("ProceduralSkyMaterial_h2yge")
-
-[sub_resource type="Environment" id="Environment_lquwl"]
-background_mode = 2
-sky = SubResource("Sky_1bvp3")
-ambient_light_source = 3
-ambient_light_color = Color(1, 1, 0, 1)
-reflected_light_source = 2
-ssr_enabled = true
-
 [node name="Main" type="Node3D"]
 script = ExtResource("1_ig7tw")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_7mycd")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
+light_color = Color(1, 1, 0.690196, 1)
+shadow_enabled = true
 
 [node name="Kinect" type="Kinect" parent="."]
 
@@ -93,6 +102,7 @@ shape = SubResource("HeightMapShape3D_0xm2m")
 [node name="Player" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75005, 1.85465)
 script = SubResource("GDScript_0xm2m")
+speed = 10.0
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
 unique_name_in_owner = true
@@ -101,17 +111,14 @@ unique_name_in_owner = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.37657, 0)
 omni_range = 999999.0
 
-[node name="RigidBody3D" type="RigidBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.938524, 0)
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
-mesh = SubResource("SphereMesh_0xm2m")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="RigidBody3D"]
-shape = SubResource("SphereShape3D_h2yge")
-
 [node name="ImageConversion" type="Node" parent="."]
 script = ExtResource("3_h2yge")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_lquwl")
+[node name="DepthTestRayCast3D" type="RayCast3D" parent="."]
+unique_name_in_owner = true
+target_position = Vector3(0, -1000, 0)
+collision_mask = 65535
+
+[node name="XRPlayer" parent="." instance=ExtResource("5_lquwl")]
+
+[node name="StartXR" parent="." instance=ExtResource("6_7mycd")]

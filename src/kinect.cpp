@@ -45,7 +45,7 @@ bool Kinect::initialize_kinect(int device_index) {
         config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
         config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED; // Set depth mode
         config.color_resolution = K4A_COLOR_RESOLUTION_720P; // Enable color camera
-        config.camera_fps = K4A_FRAMES_PER_SECOND_30; // Set frame rate
+        config.camera_fps = K4A_FRAMES_PER_SECOND_15; // Set frame rate
 
         UtilityFunctions::print("Kinect device initialized successfully.");
         return true;
