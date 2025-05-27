@@ -1,7 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=13 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://texture_filter.gdshader" id="2_h2yge"]
+[ext_resource type="Script" uid="uid://cuw714rw4fm5b" path="res://sandbox.gd" id="3_1bvp3"]
 [ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://image_conversion.gd" id="3_h2yge"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
@@ -24,7 +25,7 @@ func _process(delta: float) -> void:
 	else:
 		speed = 1.0
 	var input_plane_dir = Input.get_vector(\"left\", \"right\", \"forward\", \"backward\").normalized()
-	var input_height_dir = Input.get_axis(\"down\", \"up\")
+	var input_height_dir = Input.get_axis(\"up\", \"down\")
 	position += self.global_transform.basis * Vector3(input_plane_dir.x, input_height_dir, input_plane_dir.y) * speed * delta
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -47,6 +48,19 @@ func _unhandled_input(event: InputEvent) -> void:
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_h2yge"]
 
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_h2yge"]
+
+[sub_resource type="Sky" id="Sky_1bvp3"]
+sky_material = SubResource("ProceduralSkyMaterial_h2yge")
+
+[sub_resource type="Environment" id="Environment_lquwl"]
+background_mode = 2
+sky = SubResource("Sky_1bvp3")
+ambient_light_source = 3
+ambient_light_color = Color(1, 1, 0, 1)
+reflected_light_source = 2
+ssr_enabled = true
+
 [node name="Main" type="Node3D"]
 script = ExtResource("1_ig7tw")
 
@@ -62,13 +76,17 @@ unique_name_in_owner = true
 material = SubResource("ShaderMaterial_1bvp3")
 centered = false
 
-[node name="Floor" type="StaticBody3D" parent="."]
+[node name="Sandbox" type="AnimatableBody3D" parent="." node_paths=PackedStringArray("kinect", "image_conversion", "filtered_texture")]
+script = ExtResource("3_1bvp3")
+kinect = NodePath("../Kinect")
+image_conversion = NodePath("../ImageConversion")
+filtered_texture = NodePath("../SubViewport/FilteredTexture")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Sandbox"]
 unique_name_in_owner = true
 extra_cull_margin = 100.0
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Sandbox"]
 unique_name_in_owner = true
 shape = SubResource("HeightMapShape3D_0xm2m")
 
@@ -94,3 +112,6 @@ shape = SubResource("SphereShape3D_h2yge")
 
 [node name="ImageConversion" type="Node" parent="."]
 script = ExtResource("3_h2yge")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_lquwl")

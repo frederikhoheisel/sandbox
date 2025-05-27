@@ -1,10 +1,13 @@
-extends Node3D
-'''
-@onready var kinect : Kinect = $Kinect
+extends AnimatableBody3D
+
+
+@export var kinect: Kinect
+@export var image_conversion: Node
+@export var filtered_texture: Sprite2D
+
 @onready var collision_shape := %CollisionShape3D
-@onready var heightmap_shape := HeightMapShape3D.new()
-@onready var image_conversion := $ImageConversion
-@onready var filtered_texture: Sprite2D = %FilteredTexture
+
+var heightmap_shape := HeightMapShape3D.new()
 
 var running := false
 var depth_texture : ImageTexture
@@ -86,4 +89,3 @@ func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
 		kinect.close_kinect()
 		get_tree().quit()
-'''

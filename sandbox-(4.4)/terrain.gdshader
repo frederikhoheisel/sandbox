@@ -4,7 +4,6 @@ uniform sampler2D depth_texture; // The depth texture
 uniform float height_scale = 10.0; // Scale factor
 uniform float min_depth = 0.66;
 uniform float max_depth = 1.0;
-uniform float edge_threshold = 0.1;
 
 uniform vec3 shallow_color: source_color = vec3(0.0, 0.0, 1.0); // blue for low areas
 uniform vec3 mid_color: source_color = vec3(0.0, 1.0, 0.0);     // green for mid-range
@@ -56,23 +55,23 @@ void vertex() {
 
 void fragment() {
 	float depth = texture(depth_texture, UV).r;
-	float normalized_depth = clamp((depth - min_depth) / (max_depth - min_depth), 0.0, 1.0);
+	float normalized_height = 1.0 - clamp((depth - min_depth) / (max_depth - min_depth), 0.0, 1.0);
 	
 	vec3 color;
-	if(normalized_depth < 0.5) {
+	if(normalized_height < 0.5) {
 		// Interpolate between mid and high colors for upper half
-		color = mix(high_color, mid_color, normalized_depth * 2.0);
+		color = mix(shallow_color, mid_color, normalized_height * 2.0);
 	} else {
 		// Interpolate between shallow and mid colors for lower half
-		color = mix(mid_color, shallow_color, (normalized_depth - 0.5) * 2.0);
+		color = mix(mid_color, high_color, (normalized_height - 0.5) * 2.0);
 	}
 	
 	// Apply the color
 	ALBEDO = color;
 	
 	// Add some material properties based on height
-	ROUGHNESS = 0.3 + normalized_depth * 0.4; // Higher areas are less rough
-	METALLIC = (1.0 - normalized_depth) * 0.2;        // Higher areas have slight metallic sheen
+	ROUGHNESS = 0.3 + normalized_height * 0.4;		// Higher areas are less rough
+	METALLIC = normalized_height * 0.2;		// Higher areas have slight metallic sheen
 	
-	SPECULAR = (1.0 - normalized_depth) * 0.5;
+	SPECULAR = normalized_height * 0.5;
 }
