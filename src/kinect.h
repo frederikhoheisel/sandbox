@@ -37,6 +37,7 @@ public:
     Ref<ImageTexture> Kinect::get_depth_texture_rg8();
     Ref<ImageTexture> Kinect::get_depth_texture_rf();
     Ref<ImageTexture> Kinect::get_placeholder_texture();
+    Array playback_mkv(const String &file_path);
 };
 
 }

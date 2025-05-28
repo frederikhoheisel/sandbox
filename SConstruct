@@ -32,7 +32,7 @@ env.Append(CPPPATH=[
 
 # Bibliothekspfade und Bibliotheken hinzufügen
 env.Append(LIBPATH=[k4a_lib_path])
-env.Append(LIBS=['k4a'])
+env.Append(LIBS=['k4a', 'k4arecord'])
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/"])

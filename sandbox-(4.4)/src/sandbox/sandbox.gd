@@ -1,10 +1,12 @@
 extends AnimatableBody3D
 
 
-@export var kinect: Kinect
 @export var image_conversion: Node
 @export var filtered_texture: Sprite2D
 
+@export var use_kinect: bool = true
+
+@onready var kinect: Kinect = %Kinect
 @onready var collision_shape := %CollisionShape3D
 @onready var depth_test_ray_cast_3d: RayCast3D = %DepthTestRayCast3D
 
@@ -54,17 +56,16 @@ func _ready() -> void:
 	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
 	collision_shape.scale *= SANDBOX_SCALE
 	
-	## start the kinect and cameras
-	kinect.initialize_kinect(0)
-	kinect.start_cameras()
+	## start the kinect and cameras if enabled
+	if use_kinect:
+		kinect.initialize_kinect(0)
+		kinect.start_cameras()
 	
-	## do everything once
-	depth_texture = kinect.get_depth_texture_rf()
-	await get_tree().process_frame # for some reason needs to wait 2 frames to work properly
-	finish_update(depth_texture)
+		## do everything once
+		depth_texture = kinect.get_depth_texture_rf()
+		await get_tree().process_frame # for some reason needs to wait 2 frames to work properly
+		finish_update(depth_texture)
 	
-	await get_tree().process_frame
-	await get_tree().process_frame
 	adjust_position_of_sandbox()
 	
 	## initialise thred
@@ -73,7 +74,6 @@ func _ready() -> void:
 func adjust_position_of_sandbox() -> void:
 	depth_test_ray_cast_3d.force_raycast_update()
 	var depth = depth_test_ray_cast_3d.get_collision_point().y
-	print(depth)
 	self.position.y = -10.0 - depth
 
 ## filters a texture with a shader and returns it
@@ -89,21 +89,52 @@ func set_heightmap(texture: Texture2D) -> void:
 	image.convert(Image.FORMAT_RF)
 	heightmap_shape.update_map_data_from_image(image, 0.0, 1.0)
 
+var recording: bool = false
 func _process(_delta) -> void:
+	if Input.is_action_just_pressed("get_recording"):
+		get_recording()
+		recording = false if recording else true
+		print("toggle recording to: " + str(recording))
 	if Input.is_action_just_pressed("take_image"):
-		running = false if running else true
-		print("toggle recording to: " + str(running))
-		if !thread.is_started():
-			thread.start(update_sandbox)
+		if !recording:
+			running = false if running else true
+			print("toggle running to: " + str(running))
+			if !thread.is_started():
+				thread.start(update_sandbox)
+			else:
+				thread.wait_to_finish()
 		else:
-			thread.wait_to_finish()
+			play_recording()
+
+func take_image() -> void:
+	var img = kinect.get_depth_texture_rf().get_image()
+	img.save_png("res://img.png")
+
+var depth_images: Array
+func get_recording() -> void:
+	depth_images = kinect.playback_mkv("recordings/output.mkv")
+	if depth_images.size() > 0:
+		print("Successfully extracted depth images.")
+	else:
+		print("Failed to extract depth images.")
+
+func play_recording() -> void:
+	if depth_images.size() <= 0:
+		print("unable to play, images are empty")
+	for image in depth_images:
+		var image_rf = image_conversion.process_image(image)
+		var texture = ImageTexture.create_from_image(image_rf)
+		$"../Sprite3D".texture = texture
+		finish_update(texture)
+		await get_tree().create_timer(.1).timeout
 
 ## is in thread
 func update_sandbox() -> void:
 	while running:
 		var texture = kinect.get_depth_texture_rf()
-		call_deferred("finish_update", texture)
+		call_deferred("finish_update", texture) # deferred to let the engine schedule it
 
+## cant be in thread because modifying shit
 func finish_update(texture: Texture2D) -> void:
 	var modified_texture = await filter_texture(texture)
 	%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)

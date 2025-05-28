@@ -3,6 +3,7 @@
 #include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/classes/image.hpp>
 #include <k4a/k4a.h>
+#include <k4arecord/playback.h>
 
 using namespace godot;
 
@@ -17,6 +18,7 @@ void Kinect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_depth_texture_rg8"), &Kinect::get_depth_texture_rg8);
     ClassDB::bind_method(D_METHOD("get_depth_texture_rf"), &Kinect::get_depth_texture_rf);
     ClassDB::bind_method(D_METHOD("get_placeholder_texture"), &Kinect::get_placeholder_texture);
+    ClassDB::bind_method(D_METHOD("playback_mkv", "file_path"), &Kinect::playback_mkv);
 }
 
 Kinect::Kinect() {
@@ -138,7 +140,7 @@ Ref<Image> Kinect::get_depth_image_rf() {
     Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
 
     float *image_data = reinterpret_cast<float *>(image->ptrw());
-    const float max_depth_mm = 256.0f; // Maximum depth range in millimeters
+    const float max_depth_mm = 512.0f; // Maximum depth range in millimeters
     for (size_t i = 0; i < width * height; i++) {
         image_data[i] = static_cast<float>(buffer[i]) / max_depth_mm; // Normalize depth to [0.0, 1.0]
     }
@@ -175,7 +177,7 @@ Ref<ImageTexture> Kinect::get_depth_texture_rf() {
     Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RF);
 
     float *image_data = reinterpret_cast<float *>(image->ptrw());
-    const float max_depth_mm = 256.0f; // Maximum depth range in millimeters
+    const float max_depth_mm = 1400.0f; // Maximum depth range in millimeters
     for (size_t i = 0; i < width * height; i++) {
         image_data[i] = static_cast<float>(buffer[i]) / max_depth_mm; // Normalize depth to [0.0, 1.0]
     }
@@ -271,4 +273,74 @@ Ref<ImageTexture> Kinect::get_placeholder_texture() {
     }
 
     return depth_texture;
+}
+
+Array Kinect::playback_mkv(const String &file_path) {
+    k4a_playback_t playback_handle = nullptr;
+    Array depth_images;
+
+    // Convert Godot String to a standard C string
+    std::string file_path_std = file_path.utf8().get_data();
+    UtilityFunctions::print(file_path_std.c_str());
+
+    // Open the MKV file
+    if (k4a_playback_open(file_path_std.c_str(), &playback_handle) != K4A_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to open MKV file.");
+        return depth_images;
+    }
+
+    UtilityFunctions::print("MKV file opened successfully.");
+
+    // Retrieve recording length
+    uint64_t recording_length_usec = k4a_playback_get_recording_length_usec(playback_handle);
+    UtilityFunctions::print(String("Recording length: {0} microseconds").format(Array::make(recording_length_usec)));
+
+    // Read the recording configuration
+    k4a_record_configuration_t config;
+    if (k4a_playback_get_record_configuration(playback_handle, &config) != K4A_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to get recording configuration.");
+        k4a_playback_close(playback_handle);
+        return depth_images;
+    }
+
+    UtilityFunctions::print(String("Playback configuration: Depth mode: {0}, Color resolution: {1}, FPS: {2}")
+        .format(Array::make(config.depth_mode, config.color_resolution, config.camera_fps)));
+
+    // Seek to the beginning of the recording
+    if (k4a_playback_seek_timestamp(playback_handle, 0, K4A_PLAYBACK_SEEK_BEGIN) != K4A_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to seek to the beginning of the recording.");
+        k4a_playback_close(playback_handle);
+        return depth_images;
+    }
+
+    // Read frames from the MKV file
+    k4a_capture_t capture = nullptr;
+    while (k4a_playback_get_next_capture(playback_handle, &capture) == K4A_STREAM_RESULT_SUCCEEDED) {
+        //UtilityFunctions::print("Frame captured from MKV file.");
+
+        // Process the capture (e.g., extract depth or color images)
+        k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+        if (depth_image != nullptr) {
+            uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+            int width = k4a_image_get_width_pixels(depth_image);
+            int height = k4a_image_get_height_pixels(depth_image);
+
+            // Create a Godot Image
+            Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
+            memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
+
+            // Add the image to the array
+            depth_images.append(image);
+
+            k4a_image_release(depth_image);
+        }
+
+        k4a_capture_release(capture);
+    }
+
+    // Close the playback handle
+    k4a_playback_close(playback_handle);
+    UtilityFunctions::print("MKV playback finished.");
+
+    return depth_images;
 }

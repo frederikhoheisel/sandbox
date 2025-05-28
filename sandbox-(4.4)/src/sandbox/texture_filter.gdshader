@@ -1,6 +1,7 @@
 shader_type canvas_item;
 
 uniform sampler2D depth_texture; // The depth texture
+<<<<<<< HEAD
 const float edge_threshold = 0.1;
 const float min_depth = 0.4;
 const float max_depth = 3.0;
@@ -79,6 +80,11 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 	
 	return corrected_uv + 0.5; // - center_offset;
 }
+=======
+uniform float edge_threshold = 0.1;
+uniform float min_depth = 0.3;
+uniform float max_depth = 10.0;
+>>>>>>> 88e57b7 (recording feature)
 
 void fragment() {
 	vec2 undistorted_uv = undistort_pixel(UV);
@@ -126,6 +132,7 @@ void fragment() {
 	if(center_depth < min_depth){
 		COLOR.r = max_depth;
 	}
+<<<<<<< HEAD
 
 	/* // for debugging the uv distortion
 	if(undistorted_uv.x <= 0.0 || undistorted_uv.x >= 1.0 || undistorted_uv.y <= 0.0 || undistorted_uv.y >= 1.0) {
@@ -134,6 +141,10 @@ void fragment() {
 
 	if(UV.x < cut_box.x || UV.x > cut_box.y || UV.y < cut_box.z || UV.y > cut_box.w) {
 		COLOR.r = max_depth;
+=======
+	if(UV.x < 0.1 || UV.x > 0.9 || UV.y < 0.2 || UV.y > 0.82) {
+		COLOR.r = max_depth;;
+>>>>>>> 88e57b7 (recording feature)
 	}
 }
 

@@ -23,7 +23,7 @@ void main() {
         vec4 pixel_data = imageLoad(input_texture, pixel_coords);
         
         // Apply the conversion
-        float result = ( pixel_data.r + pixel_data.g * 256.0);
+        float result = ( pixel_data.r + pixel_data.g * 256.0) / 3.0;
         
         // Store the result in the output texture
         imageStore(output_texture, pixel_coords, vec4(result, 0.0, 0.0, 0.0));

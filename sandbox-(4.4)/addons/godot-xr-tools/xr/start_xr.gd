@@ -47,6 +47,7 @@ static var _xr_active : bool = false
 ## If non-zero, specifies the target refresh rate
 @export var target_refresh_rate : float = 0
 
+@export var enable : bool = true
 
 ## Current XR interface
 var xr_interface : XRInterface
@@ -60,7 +61,7 @@ var _webxr_session_query : bool = false
 
 # Handle auto-initialization when ready
 func _ready() -> void:
-	if !Engine.is_editor_hint():
+	if !Engine.is_editor_hint() and enable:
 		_initialize()
 
 

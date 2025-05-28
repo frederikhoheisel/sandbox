@@ -3,6 +3,7 @@ shader_type spatial;
 uniform sampler2D depth_texture; // The depth texture
 uniform bool use_real_colors = false;
 uniform float height_scale = 10.0; // Scale factor
+<<<<<<< HEAD
 uniform float min_depth = 0.5;
 uniform float max_depth = 0.56;
 
@@ -11,6 +12,10 @@ uniform sampler2D color_texture;
 uniform vec2 color_scale = vec2(0.455, 0.791);
 uniform vec2 color_offset = vec2(-0.017, 0.016);
 uniform float aspect_correction : hint_range(0.5, 2.0) = 1.0;
+=======
+uniform float min_depth = 0.3;
+uniform float max_depth = 1.0;
+>>>>>>> 88e57b7 (recording feature)
 
 uniform vec3 shallow_color: source_color = vec3(0.0, 0.0, 1.0); // blue for low areas
 uniform vec3 mid_color: source_color = vec3(0.0, 1.0, 0.0); // green for mid-range
