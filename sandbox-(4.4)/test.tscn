@@ -1,4 +1,7 @@
-[gd_scene load_steps=17 format=3 uid="uid://ckh8r560fhrag"]
+[gd_scene load_steps=19 format=3 uid="uid://ckh8r560fhrag"]
+
+[ext_resource type="PackedScene" uid="uid://clc5dre31iskm" path="res://addons/godot-xr-tools/xr/start_xr.tscn" id="1_8uh7m"]
+[ext_resource type="PackedScene" uid="uid://biomxbk85ryjy" path="res://src/xrplayer/xr_player.tscn" id="2_6uqi0"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_mf4mk"]
 sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
@@ -137,3 +140,8 @@ depth = 6.0
 [node name="CSGBakedCollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 0)
 shape = SubResource("ConcavePolygonShape3D_mf4mk")
+
+[node name="StartXR" parent="." instance=ExtResource("1_8uh7m")]
+
+[node name="XRPlayer" parent="." instance=ExtResource("2_6uqi0")]
+current = true

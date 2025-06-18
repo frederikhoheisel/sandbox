@@ -4,21 +4,26 @@
 #include <godot_cpp/classes/image.hpp>
 #include <k4a/k4a.h>
 #include <k4arecord/playback.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 using namespace godot;
 
 void Kinect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("initialize_kinect", "device_index"), &Kinect::initialize_kinect);
+    ClassDB::bind_method(D_METHOD("extract_camera_parameters"), &Kinect::extract_camera_parameters);
     ClassDB::bind_method(D_METHOD("close_kinect"), &Kinect::close_kinect);
     ClassDB::bind_method(D_METHOD("get_connected_device_count"), &Kinect::get_connected_device_count);
     ClassDB::bind_method(D_METHOD("get_depth_image_rf"), &Kinect::get_depth_image_rf);
     ClassDB::bind_method(D_METHOD("get_depth_image_rg8"), &Kinect::get_depth_image_rg8);
+    ClassDB::bind_method(D_METHOD("get_depth_and_color_image_rg8"), &Kinect::get_depth_and_color_image_rg8);
     ClassDB::bind_method(D_METHOD("start_cameras"), &Kinect::start_cameras);
     ClassDB::bind_method(D_METHOD("stop_cameras"), &Kinect::stop_cameras);
     ClassDB::bind_method(D_METHOD("get_depth_texture_rg8"), &Kinect::get_depth_texture_rg8);
     ClassDB::bind_method(D_METHOD("get_depth_texture_rf"), &Kinect::get_depth_texture_rf);
     ClassDB::bind_method(D_METHOD("get_placeholder_texture"), &Kinect::get_placeholder_texture);
     ClassDB::bind_method(D_METHOD("playback_mkv", "file_path"), &Kinect::playback_mkv);
+    //ClassDB::bind_method(D_METHOD("undistort_depth_image"), &Kinect::undistort_depth_image); // uses internal data types unknown to godot-cpp
 }
 
 Kinect::Kinect() {
@@ -47,7 +52,8 @@ bool Kinect::initialize_kinect(int device_index) {
         config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
         config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED; // Set depth mode
         config.color_resolution = K4A_COLOR_RESOLUTION_720P; // Enable color camera
-        config.camera_fps = K4A_FRAMES_PER_SECOND_15; // Set frame rate
+        config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32; // Set color format
+        config.camera_fps = K4A_FRAMES_PER_SECOND_5; // Set frame rate
 
         UtilityFunctions::print("Kinect device initialized successfully.");
         return true;
@@ -57,6 +63,48 @@ bool Kinect::initialize_kinect(int device_index) {
     }
 
     return false;
+}
+
+// function to print camera parameters for use in shader to counter distortion
+Array Kinect::extract_camera_parameters() {
+    k4a_calibration_t calibration;
+    Array depth_params_array;
+    if (k4a_device_get_calibration(kinect_device, config.depth_mode, config.color_resolution, &calibration) == K4A_RESULT_SUCCEEDED) {
+        auto depth_params = calibration.depth_camera_calibration.intrinsics.parameters.param;
+        UtilityFunctions::print("DEPTH CAMERA INTRINSICS:");
+        // for direct copy to the shader
+        UtilityFunctions::print("// focal length");
+        UtilityFunctions::print(String("uniform float fx = {0};").format(Array::make(depth_params.fx)));
+        UtilityFunctions::print(String("uniform float fy = {0};").format(Array::make(depth_params.fy)));
+        UtilityFunctions::print("// principal point");
+        UtilityFunctions::print(String("uniform float cx = {0};").format(Array::make(depth_params.cx)));
+        UtilityFunctions::print(String("uniform float cy = {0};").format(Array::make(depth_params.cy)));
+        UtilityFunctions::print("// radial distortion");
+        UtilityFunctions::print(String("uniform float k1 = {0};").format(Array::make(depth_params.k1)));
+        UtilityFunctions::print(String("uniform float k2 = {0};").format(Array::make(depth_params.k2)));
+        UtilityFunctions::print(String("uniform float k3 = {0};").format(Array::make(depth_params.k3)));
+        UtilityFunctions::print(String("uniform float k4 = {0};").format(Array::make(depth_params.k4)));
+        UtilityFunctions::print(String("uniform float k5 = {0};").format(Array::make(depth_params.k5)));
+        UtilityFunctions::print(String("uniform float k6 = {0};").format(Array::make(depth_params.k6)));
+        UtilityFunctions::print("// tangential distortion");
+        UtilityFunctions::print(String("uniform float p1 = {0};").format(Array::make(depth_params.p1)));
+        UtilityFunctions::print(String("uniform float p2 = {0};").format(Array::make(depth_params.p2)));
+        depth_params_array.push_back(depth_params.fx);
+        depth_params_array.push_back(depth_params.fy);
+        depth_params_array.push_back(depth_params.cx);
+        depth_params_array.push_back(depth_params.cy);
+        depth_params_array.push_back(depth_params.k1);
+        depth_params_array.push_back(depth_params.k2);
+        depth_params_array.push_back(depth_params.k3);
+        depth_params_array.push_back(depth_params.k4);
+        depth_params_array.push_back(depth_params.k5);
+        depth_params_array.push_back(depth_params.k6);
+        depth_params_array.push_back(depth_params.p1);
+        depth_params_array.push_back(depth_params.p2);
+    } else {
+        UtilityFunctions::print("Failed to get calibration data from the Kinect");
+    }
+    return depth_params_array;
 }
 
 bool Kinect::start_cameras() {
@@ -213,13 +261,67 @@ Ref<Image> Kinect::get_depth_image_rg8() {
     int width = k4a_image_get_width_pixels(depth_image);
     int height = k4a_image_get_height_pixels(depth_image);
 
-    Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
-    memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
-
+    Ref<Image> depth = Image::create(width, height, false, Image::FORMAT_RG8);
+    memcpy(depth->ptrw(), buffer, width * height * sizeof(uint16_t));
+    
     k4a_image_release(depth_image);
     k4a_capture_release(capture);
 
-    return image;
+    return depth;
+}
+
+Array Kinect::get_depth_and_color_image_rg8() {
+    Array frame_data;
+
+    if (kinect_device == nullptr) {
+        UtilityFunctions::print("Kinect device is not initialized.");
+        return frame_data;
+    }
+
+    k4a_capture_t capture = nullptr;
+    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+        UtilityFunctions::print("Failed to capture frame.");
+        return frame_data;
+    }
+
+    // get the depth image
+    k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
+    if (depth_image == nullptr) {
+        UtilityFunctions::print("Failed to get depth image.");
+        k4a_image_release(depth_image);
+    } else {
+        uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+        int width = k4a_image_get_width_pixels(depth_image);
+        int height = k4a_image_get_height_pixels(depth_image);
+
+        Ref<Image> depth = Image::create(width, height, false, Image::FORMAT_RG8);
+        memcpy(depth->ptrw(), buffer, width * height * sizeof(uint16_t));
+
+        frame_data.append(depth);
+        k4a_image_release(depth_image);
+    }
+
+    // get the color image
+    k4a_image_t color_image = k4a_capture_get_color_image(capture);
+    //UtilityFunctions::print(k4a_image_get_format(color_image));
+    if (color_image == nullptr) {
+        UtilityFunctions::print("Failed to get color image.");
+        k4a_image_release(color_image);
+    } else {
+        uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(color_image));
+        int width = k4a_image_get_width_pixels(color_image);
+        int height = k4a_image_get_height_pixels(color_image);
+
+        Ref<Image> color = Image::create(width, height, false, Image::FORMAT_RGBA8);
+        memcpy(color->ptrw(), buffer, width * height * 4);
+
+        frame_data.append(color);
+        k4a_image_release(color_image);
+    }
+
+    k4a_capture_release(capture);
+
+    return frame_data;
 }
 
 Ref<ImageTexture> Kinect::get_depth_texture_rg8() {
@@ -275,9 +377,10 @@ Ref<ImageTexture> Kinect::get_placeholder_texture() {
     return depth_texture;
 }
 
+// function to playback mkv files and return an array of Dictionaries containing depth and color images
 Array Kinect::playback_mkv(const String &file_path) {
     k4a_playback_t playback_handle = nullptr;
-    Array depth_images;
+    Array images;
 
     // Convert Godot String to a standard C string
     std::string file_path_std = file_path.utf8().get_data();
@@ -286,7 +389,7 @@ Array Kinect::playback_mkv(const String &file_path) {
     // Open the MKV file
     if (k4a_playback_open(file_path_std.c_str(), &playback_handle) != K4A_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to open MKV file.");
-        return depth_images;
+        return images;
     }
 
     UtilityFunctions::print("MKV file opened successfully.");
@@ -300,7 +403,7 @@ Array Kinect::playback_mkv(const String &file_path) {
     if (k4a_playback_get_record_configuration(playback_handle, &config) != K4A_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to get recording configuration.");
         k4a_playback_close(playback_handle);
-        return depth_images;
+        return images;
     }
 
     UtilityFunctions::print(String("Playback configuration: Depth mode: {0}, Color resolution: {1}, FPS: {2}")
@@ -310,15 +413,23 @@ Array Kinect::playback_mkv(const String &file_path) {
     if (k4a_playback_seek_timestamp(playback_handle, 0, K4A_PLAYBACK_SEEK_BEGIN) != K4A_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to seek to the beginning of the recording.");
         k4a_playback_close(playback_handle);
-        return depth_images;
+        return images;
     }
 
     // Read frames from the MKV file
     k4a_capture_t capture = nullptr;
-    while (k4a_playback_get_next_capture(playback_handle, &capture) == K4A_STREAM_RESULT_SUCCEEDED) {
-        //UtilityFunctions::print("Frame captured from MKV file.");
+    while (true) {
+        k4a_stream_result_t result = k4a_playback_get_next_capture(playback_handle, &capture);
+        if (result == K4A_STREAM_RESULT_FAILED) {
+            UtilityFunctions::print("Failed to get next capture.");
+            break;
+        } else if (result == K4A_STREAM_RESULT_EOF) {
+            UtilityFunctions::print("End of file reached.");
+            break;
+        }
+        Dictionary frame_data;
 
-        // Process the capture (e.g., extract depth or color images)
+        // Process the depth data
         k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
         if (depth_image != nullptr) {
             uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
@@ -327,13 +438,48 @@ Array Kinect::playback_mkv(const String &file_path) {
 
             // Create a Godot Image
             Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RG8);
-            memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
+
+            // Undistort the depth image
+            k4a_calibration_t camera_calibration;
+            if (k4a_device_get_calibration(kinect_device, config.depth_mode, config.color_resolution, &camera_calibration) != K4A_RESULT_SUCCEEDED) {
+                UtilityFunctions::print("Failed to get camera calibration.");
+                return images;
+            }
+            undistort_depth_image(camera_calibration, depth_image, image);
+            
+            //memcpy(image->ptrw(), buffer, width * height * sizeof(uint16_t));
 
             // Add the image to the array
-            depth_images.append(image);
+            frame_data["depth"] = image;
 
             k4a_image_release(depth_image);
         }
+
+        // Process the color data
+        k4a_image_t color_image = k4a_capture_get_color_image(capture);
+        if (color_image != nullptr) {
+            //UtilityFunctions::print(k4a_image_get_format(color_image));
+
+            uint8_t *buffer = k4a_image_get_buffer(color_image);
+            size_t buffer_size = k4a_image_get_size(color_image);
+
+            int width, height, channels;
+            // use of stb_image for the conversion from jpg
+            unsigned char *decoded_data = stbi_load_from_memory(buffer, buffer_size, &width, &height, &channels, 3); // Decode as RGB
+
+            UtilityFunctions::print("width: " + String::num_int64(width) + ", height: " + String::num_int64(height) + ", channels: " + String::num_int64(channels));
+
+            if (decoded_data != nullptr) {
+                Ref<Image> image = Image::create(width, height, false, Image::FORMAT_RGB8);
+                memcpy(image->ptrw(), decoded_data, width * height * 3);
+                frame_data["color"] = image;
+            } else {
+                UtilityFunctions::print("Invalid color image data.");
+            }
+
+            k4a_image_release(color_image);
+        }
+        images.append(frame_data);
 
         k4a_capture_release(capture);
     }
@@ -342,5 +488,50 @@ Array Kinect::playback_mkv(const String &file_path) {
     k4a_playback_close(playback_handle);
     UtilityFunctions::print("MKV playback finished.");
 
-    return depth_images;
+    return images;
+}
+
+// for now internal function to undistort depth images
+// bad code, maybe needs a compute shader later on or a way to save calibration and apply it fast to all depth images
+void Kinect::undistort_depth_image(k4a_calibration_t &camera_calibration, k4a_image_t depth_image, Ref<Image> &undistorted_image) {
+    //UtilityFunctions::print("calibration started");
+    int width = k4a_image_get_width_pixels(depth_image);
+    int height = k4a_image_get_height_pixels(depth_image);
+    uint16_t *depth_buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
+
+    // Create a Godot Image for the undistorted depth image
+    undistorted_image = Image::create(width, height, false, Image::FORMAT_RG8);
+    uint16_t *undistorted_buffer = reinterpret_cast<uint16_t *>(undistorted_image->ptrw());
+    //UtilityFunctions::print("in front of loop");
+    // Iterate over each pixel in the depth image
+    for (int y = 0; y < height; y++) {
+        //UtilityFunctions::print("y: " + String::num_int64(y));
+        for (int x = 0; x < width; x++) {
+            //UtilityFunctions::print("x: " + String::num_int64(x));
+            k4a_float2_t pixel = {static_cast<float>(x), static_cast<float>(y)};
+            k4a_float3_t ray;
+            int valid;
+
+            //UtilityFunctions::print("in front of 2d to 3d calibration");
+            // Map the 2D pixel to a 3D ray in the camera's coordinate system
+            k4a_calibration_2d_to_3d(&camera_calibration, &pixel, depth_buffer[y * width + x],
+                                     K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_DEPTH, &ray, &valid);
+            //UtilityFunctions::print("after 2d to 3d calibration");
+            if (valid) {
+                // Map the 3D ray back to 2D undistorted pixel coordinates
+                k4a_float2_t undistorted_pixel;
+                k4a_calibration_3d_to_2d(&camera_calibration, &ray, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_DEPTH, &undistorted_pixel, &valid);
+
+                if (valid) {
+                    int undistorted_x = static_cast<int>(undistorted_pixel.xy.x + 0.5f);
+                    int undistorted_y = static_cast<int>(undistorted_pixel.xy.y + 0.5f);
+
+                    // Ensure the undistorted pixel is within bounds
+                    if (undistorted_x >= 0 && undistorted_x < width && undistorted_y >= 0 && undistorted_y < height) {
+                        undistorted_buffer[undistorted_y * width + undistorted_x] = depth_buffer[y * width + x];
+                    }
+                }
+            }
+        }
+    }
 }

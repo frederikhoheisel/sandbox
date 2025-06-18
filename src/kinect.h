@@ -27,6 +27,7 @@ public:
     ~Kinect();
 
     static void kinect_log_callback(void *context, k4a_log_level_t level, const char *file, const int line, const char *message);
+    Array extract_camera_parameters();
     bool initialize_kinect(int device_index = 0);
     void close_kinect();
     bool start_cameras();
@@ -34,10 +35,12 @@ public:
     int get_connected_device_count();
     Ref<Image> get_depth_image_rf();
     Ref<Image> get_depth_image_rg8();
+    Array get_depth_and_color_image_rg8();
     Ref<ImageTexture> Kinect::get_depth_texture_rg8();
     Ref<ImageTexture> Kinect::get_depth_texture_rf();
     Ref<ImageTexture> Kinect::get_placeholder_texture();
     Array playback_mkv(const String &file_path);
+    void Kinect::undistort_depth_image(k4a_calibration_t &camera_calibration, k4a_image_t depth_image, Ref<Image> &undistorted_image);
 };
 
 }

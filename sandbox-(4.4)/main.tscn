@@ -24,9 +24,19 @@ glow_enabled = true
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
-shader_parameter/edge_threshold = 0.1
-shader_parameter/min_depth = 0.5
-shader_parameter/max_depth = 3.0
+shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
+shader_parameter/fx = 503.014
+shader_parameter/fy = 503.004
+shader_parameter/cx = 323.092
+shader_parameter/cy = 336.344
+shader_parameter/k1 = 0.721784
+shader_parameter/k2 = 0.300272
+shader_parameter/k3 = 0.0169864
+shader_parameter/k4 = 1.05876
+shader_parameter/k5 = 0.479511
+shader_parameter/k6 = 0.0855306
+shader_parameter/p1 = 5.97161e-05
+shader_parameter/p2 = 5.87187e-05
 
 [sub_resource type="HeightMapShape3D" id="HeightMapShape3D_0xm2m"]
 
@@ -90,6 +100,8 @@ environment = SubResource("Environment_7mycd")
 transform = Transform3D(-0.866023, -0.433016, 0.250001, 0, 0.499998, 0.866027, -0.500003, 0.749999, -0.43301, 0, 0, 0)
 light_color = Color(1, 1, 0.690196, 1)
 shadow_enabled = true
+directional_shadow_fade_start = 1.0
+directional_shadow_max_distance = 10000.0
 
 [node name="Kinect" type="Kinect" parent="."]
 unique_name_in_owner = true
@@ -108,7 +120,7 @@ centered = false
 script = ExtResource("3_1bvp3")
 image_conversion = NodePath("../ImageConversion")
 filtered_texture = NodePath("../SubViewport/FilteredTexture")
-use_kinect = false
+use_color_image = false
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Sandbox"]
 unique_name_in_owner = true
@@ -126,10 +138,6 @@ speed = 10.0
 [node name="Camera3D" type="Camera3D" parent="Player"]
 unique_name_in_owner = true
 
-[node name="OmniLight3D" type="OmniLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.37657, 0)
-omni_range = 999999.0
-
 [node name="ImageConversion" type="Node" parent="."]
 script = ExtResource("3_h2yge")
 
@@ -141,9 +149,11 @@ collision_mask = 65535
 [node name="XRPlayer" parent="." instance=ExtResource("5_lquwl")]
 
 [node name="StartXR" parent="." instance=ExtResource("6_7mycd")]
-enable = false
 
 [node name="Sprite3D" type="Sprite3D" parent="."]
+
+[node name="Sprite3D2" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.48573, 0)
 
 [node name="Ruler" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 27.0946)
