@@ -13,8 +13,8 @@ import sys
 # - LINKFLAGS are for linking flags
 
 opts = Variables([], ARGUMENTS)
-opts.Add(PathVariable('k4a_include_path', 'Pfad zu Azure Kinect SDK Includes', 'C:/Program Files/Azure Kinect SDK v1.4.2/sdk/include'))
-opts.Add(PathVariable('k4a_lib_path', 'Pfad zu Azure Kinect SDK Libs', 'C:/Program Files/Azure Kinect SDK v1.4.2/sdk/windows-desktop/amd64/release/lib'))
+opts.Add(PathVariable('k4a_include_path', 'Pfad zu Azure Kinect SDK Includes', 'C:/Program Files/Azure Kinect SDK v1.4.1/sdk/include'))
+opts.Add(PathVariable('k4a_lib_path', 'Pfad zu Azure Kinect SDK Libs', 'C:/Program Files/Azure Kinect SDK v1.4.1/sdk/windows-desktop/amd64/release/lib'))
 
 env = SConscript("godot-cpp/SConstruct")
 
