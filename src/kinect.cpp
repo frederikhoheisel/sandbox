@@ -245,7 +245,7 @@ Ref<Image> Kinect::get_depth_image_rg8() {
     }
 
     k4a_capture_t capture = nullptr;
-    if (k4a_device_get_capture(kinect_device, &capture, 5000) != K4A_WAIT_RESULT_SUCCEEDED) {
+    if (k4a_device_get_capture(kinect_device, &capture, 1000) != K4A_WAIT_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to capture frame.");
         return nullptr;
     }

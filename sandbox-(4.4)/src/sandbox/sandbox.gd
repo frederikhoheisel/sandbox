@@ -18,8 +18,8 @@ var running := false
 
 const WIDTH := 10.0
 const DEPTH := 9.0
-const PIXEL_WIDTH := 640 * 2
-const PIXEL_DEPTH := 576 * 2
+const PIXEL_WIDTH := 640
+const PIXEL_DEPTH := 576
 
 const SANDBOX_SCALE := 10.0
 var thread: Thread
@@ -74,6 +74,7 @@ func _ready() -> void:
 		await get_tree().process_frame # for some reason needs to wait 2 frames to work properly
 		finish_update(frame_data)
 		
+		# extract the camera intrinsics and apply them to the shader
 		var depth_params: Array = kinect.extract_camera_parameters()
 		if not depth_params.is_empty():
 			filtered_texture.material.set("shader_parameter/fx", depth_params[0])
@@ -182,7 +183,7 @@ func set_cut_box() -> void:
 	filtered_texture.material.set("shader_parameter/cut_box", cut_box)
 
 var recording: bool = false
-func _physics_process(delta: float) -> void:
+func _physics_process(_delta: float) -> void:
 	# fit_color_image()
 	# set_cut_box()
 	if Input.is_action_just_pressed("get_recording"):
@@ -199,6 +200,8 @@ func _physics_process(delta: float) -> void:
 				thread.wait_to_finish()
 		else:
 			play_recording()
+	#if running:
+	#	finish_update(kinect.get_depth_image_rg8())
 
 func take_image() -> void:
 	var img = kinect.get_depth_texture_rf().get_image()
@@ -244,9 +247,11 @@ func finish_update(image_rg8) -> void:
 	var depth = null
 	var color = null
 	if use_color_image:
-		depth = image_rg8.get(0)
-		#print(depth)
-		color = image_rg8.get(1)
+		if not image_rg8.is_empty():
+			depth = image_rg8.get(0)
+			#print(depth)
+			if image_rg8.size() == 2:
+				color = image_rg8.get(1)
 	else:
 		depth = image_rg8
 	

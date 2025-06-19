@@ -47,8 +47,6 @@ static var _xr_active : bool = false
 ## If non-zero, specifies the target refresh rate
 @export var target_refresh_rate : float = 0
 
-@export var enable : bool = true
-
 ## Current XR interface
 var xr_interface : XRInterface
 
@@ -61,7 +59,7 @@ var _webxr_session_query : bool = false
 
 # Handle auto-initialization when ready
 func _ready() -> void:
-	if !Engine.is_editor_hint() and enable:
+	if !Engine.is_editor_hint():
 		_initialize()
 
 
@@ -326,7 +324,7 @@ func _set_xr_frame_rate() -> void:
 	var active_rate := xr_frame_rate if xr_frame_rate > 0 else 144.0
 	var physics_rate := int(round(active_rate * physics_rate_multiplier))
 	print("StartXR: Setting physics rate to ", physics_rate)
-	Engine.physics_ticks_per_second = physics_rate
+	#Engine.physics_ticks_per_second = physics_rate
 
 
 # Find the closest value in the array to the target

@@ -5,7 +5,7 @@ uniform bool use_real_colors = false;
 uniform float height_scale = 10.0; // Scale factor
 
 uniform float min_depth = 0.5;
-uniform float max_depth = 0.56;
+uniform float max_depth = 0.57;
 
 uniform sampler2D color_texture;
 // for scaling and positioning the color texture

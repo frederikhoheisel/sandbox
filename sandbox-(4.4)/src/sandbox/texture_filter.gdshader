@@ -83,8 +83,9 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 
 void fragment() {
 	vec2 undistorted_uv = undistort_pixel(UV);
+	// vec2 undistorted_uv = UV;
 	float center_depth = texture(depth_texture, undistorted_uv).r / max_depth;
-	center_depth -= undistorted_uv.y * 0.091;
+	center_depth -= undistorted_uv.y * 0.084;
 	//float center_depth = COLOR.r / max_depth;
 	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
 

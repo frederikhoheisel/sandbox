@@ -24,7 +24,7 @@ XRToolsRumbleManager="*res://addons/godot-xr-tools/rumble/rumble_manager.gd"
 
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
-window/vsync/vsync_mode=2
+window/vsync/vsync_mode=0
 
 [dotnet]
 
@@ -172,7 +172,7 @@ cut_bottom_down={
 
 [physics]
 
-common/physics_ticks_per_second=90
+common/physics_ticks_per_second=30
 
 [xr]
 

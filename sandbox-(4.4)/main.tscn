@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=21 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://src/sandbox/texture_filter.gdshader" id="2_h2yge"]
@@ -90,6 +90,10 @@ albedo_color = Color(0, 0, 0, 1)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_efxa6"]
 albedo_color = Color(0, 0, 0, 1)
 
+[sub_resource type="SphereMesh" id="SphereMesh_7mycd"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_272bh"]
+
 [node name="Main" type="Node3D"]
 script = ExtResource("1_ig7tw")
 
@@ -157,6 +161,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.48573, 0)
 
 [node name="Ruler" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 27.0946)
+visible = false
 
 [node name="CSGBox3D" type="CSGBox3D" parent="Ruler"]
 
@@ -454,3 +459,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -26, 0)
 [node name="CSGBox3D28" type="CSGBox3D" parent="Ruler/Ruler3"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -27, 0)
 material = SubResource("StandardMaterial3D_efxa6")
+
+[node name="RigidBody3D" type="RigidBody3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
+mesh = SubResource("SphereMesh_7mycd")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RigidBody3D"]
+shape = SubResource("SphereShape3D_272bh")
