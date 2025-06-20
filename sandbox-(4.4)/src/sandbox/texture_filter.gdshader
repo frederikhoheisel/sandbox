@@ -3,6 +3,16 @@ shader_type canvas_item;
 uniform sampler2D depth_texture; // The depth texture
 
 const float edge_threshold = 0.1;
+
+/** parameters for the bilateral filter */
+uniform float sigma_spatial = 2.0; // controls spatial smoothing
+uniform float sigma_intensity = 0.05; // controls edge preservation
+uniform int kernel_size = 3;
+
+/** parameters for exponential smoothing */
+uniform sampler2D previous_frame;
+uniform float alpha = 0.3;
+
 const float min_depth = 0.4;
 const float max_depth = 3.0;
 
@@ -58,9 +68,8 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 
 	// Apply corrections
 	vec2 undistorted_norm = vec2(
-		x * radial_factor + tangential_x,
-		y * radial_factor + tangential_y
-	);
+			x * radial_factor + tangential_x,
+			y * radial_factor + tangential_y);
 
 	// Convert back to pixel coordinates
 	// vec2 result = undistorted_norm + vec2(cx / resolution.x, cy / resolution.y);
@@ -74,20 +83,67 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 	float perspective_factor = 1.0 + perspective_strength * center_uv.y;
 	
 	vec2 corrected_uv = vec2(
-		(center_uv.x / width_scale) / perspective_factor,
-		center_uv.y / perspective_factor
-	);
+			(center_uv.x / width_scale) / perspective_factor,
+			center_uv.y / perspective_factor);
 	
 	return corrected_uv + 0.5; // - center_offset;
 }
 
+/** gaussian distribution function */
+float gaussian(float x, float sigma) {
+	return exp(-(x * x) / (2.0 * sigma * sigma));
+}
+
+float bilateral_filter(sampler2D tex, vec2 uv, vec2 texel_size) {
+	float center_depth = texture(tex, uv).r / max_depth;
+	float filtered_depth = 0.0;
+	float weight_sum = 0.0;
+	
+	int half_kernel = kernel_size / 2;
+	for (int i = -half_kernel; i <= half_kernel; i++) {
+		for (int j = -half_kernel; j <= half_kernel; j++) {
+			vec2 offset = vec2(float(i), float(j)) * texel_size;
+			vec2 sample_uv = uv + offset;
+			
+			float sample_depth = texture(tex, sample_uv).r / max_depth;
+			
+			float spatial_distance = length(vec2(float(i), float(j)));
+			float spatial_weight = gaussian(spatial_distance, sigma_spatial);
+			
+			float intensity_distance = length(sample_depth - center_depth);
+			float intensity_weight = gaussian(intensity_distance, sigma_intensity);
+			
+			float bilateral_weight = spatial_weight * intensity_weight;
+			
+			filtered_depth += sample_depth * bilateral_weight;
+			weight_sum += bilateral_weight;
+		}
+	}
+	
+	return weight_sum > 0.0 ? filtered_depth / weight_sum : center_depth;
+}
+
+float exponential_smooth(float current, float previous) {
+	return alpha * current + (1.0 - alpha) * previous;
+}
+
 void fragment() {
-	vec2 undistorted_uv = undistort_pixel(UV);
-	// vec2 undistorted_uv = UV;
-	float center_depth = texture(depth_texture, undistorted_uv).r / max_depth;
-	center_depth -= undistorted_uv.y * 0.084;
-	//float center_depth = COLOR.r / max_depth;
+	vec2 undistorted_uv = undistort_pixel(UV); // undistort the lens distortion and angle
 	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
+	//vec2 undistorted_uv = UV;
+	float center_depth = texture(depth_texture, undistorted_uv).r / max_depth;
+	//float center_depth = COLOR.r / max_depth;
+	
+	float center_depth_filtered = bilateral_filter(depth_texture, undistorted_uv, texel_size);
+	center_depth_filtered -= UV.y * 0.079; // to balance out tilt
+	//center_depth_filtered -= undistorted_uv.y * 0.084;
+	
+	float previous_depth = texture(previous_frame, UV).r;
+	
+	center_depth = exponential_smooth(center_depth_filtered, previous_depth);
+	
+	COLOR.r = previous_depth * max_depth;
+	
 
 	// Check if this pixel is near a depth discontinuity
 	bool is_edge = false;
@@ -106,12 +162,15 @@ void fragment() {
 		vec2(-1.0, -1.0)
 	};
 
+	//center_depth *= (1.0 / 9.0);
 	for(int i = 0; i < directions.length(); i++) {
 		vec2 offset = directions[i] * texel_size;
 		float neighbor_depth = texture(depth_texture, undistorted_uv + offset).r / max_depth;
-
+		
 		min_neighbor = min(min_neighbor, neighbor_depth);
 		max_neighbor = max(max_neighbor, neighbor_depth);
+		
+		//center_depth += (1.0 / 9.0) * neighbor_depth;
 	}
 
 	// If depth difference is too large, this is an edge

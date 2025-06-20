@@ -7,23 +7,22 @@
 [ext_resource type="PackedScene" uid="uid://biomxbk85ryjy" path="res://src/xrplayer/xr_player.tscn" id="5_lquwl"]
 [ext_resource type="PackedScene" uid="uid://clc5dre31iskm" path="res://addons/godot-xr-tools/xr/start_xr.tscn" id="6_7mycd"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1bvp3"]
-sky_top_color = Color(0.258394, 0.5366, 0.835728, 1)
-sky_horizon_color = Color(0.768553, 0.835513, 0.893761, 1)
-ground_bottom_color = Color(0.275927, 0.265565, 0.199428, 1)
-ground_horizon_color = Color(0.768553, 0.835513, 0.893761, 1)
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7mycd"]
 
-[sub_resource type="Sky" id="Sky_lquwl"]
-sky_material = SubResource("ProceduralSkyMaterial_1bvp3")
+[sub_resource type="Sky" id="Sky_272bh"]
+sky_material = SubResource("ProceduralSkyMaterial_7mycd")
 
 [sub_resource type="Environment" id="Environment_7mycd"]
 background_mode = 2
-sky = SubResource("Sky_lquwl")
-tonemap_mode = 2
+sky = SubResource("Sky_272bh")
 glow_enabled = true
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
 shader = ExtResource("2_h2yge")
+shader_parameter/sigma_spatial = 2.0
+shader_parameter/sigma_intensity = 0.1
+shader_parameter/kernel_size = 15
+shader_parameter/alpha = 0.9
 shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
 shader_parameter/fx = 503.014
 shader_parameter/fy = 503.004
@@ -461,6 +460,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -27, 0)
 material = SubResource("StandardMaterial3D_efxa6")
 
 [node name="RigidBody3D" type="RigidBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.83589)
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="RigidBody3D"]
 mesh = SubResource("SphereMesh_7mycd")

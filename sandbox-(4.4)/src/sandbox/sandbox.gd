@@ -243,6 +243,7 @@ func update_sandbox() -> void:
 
 ## cant be in thread because modifying something
 ## very spaghetti :(
+var previous_depth_texture: Texture2D = null # frame buffer
 func finish_update(image_rg8) -> void:
 	var depth = null
 	var color = null
@@ -261,6 +262,9 @@ func finish_update(image_rg8) -> void:
 		var texture = ImageTexture.create_from_image(image_rf)
 		var modified_texture = await filter_texture(texture)
 		%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)
+		%MeshInstance3D.material_override.set("shader_parameter/previous_frame", previous_depth_texture)
+		$"../Sprite3D".texture = previous_depth_texture
+		previous_depth_texture = modified_texture
 		#%MeshInstance3D.material_override.set("shader_parameter/color_texture", modified_texture)
 		set_heightmap(modified_texture)
 		$"../Sprite3D2".texture = modified_texture
