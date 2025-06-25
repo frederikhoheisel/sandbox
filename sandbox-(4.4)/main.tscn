@@ -1,6 +1,7 @@
-[gd_scene load_steps=21 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=23 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://c5rpm7yey6ijs" path="res://filter_texture.gd" id="2_272bh"]
 [ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://src/sandbox/texture_filter.gdshader" id="2_h2yge"]
 [ext_resource type="Script" uid="uid://cuw714rw4fm5b" path="res://src/sandbox/sandbox.gd" id="3_1bvp3"]
 [ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://src/sandbox/image_conversion.gd" id="3_h2yge"]
@@ -17,12 +18,34 @@ background_mode = 2
 sky = SubResource("Sky_272bh")
 glow_enabled = true
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_1bvp3"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_272bh"]
 shader = ExtResource("2_h2yge")
 shader_parameter/sigma_spatial = 2.0
 shader_parameter/sigma_intensity = 0.1
 shader_parameter/kernel_size = 15
-shader_parameter/alpha = 0.9
+shader_parameter/alpha = 0.6
+shader_parameter/min_depth = 0.45
+shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
+shader_parameter/fx = 503.014
+shader_parameter/fy = 503.004
+shader_parameter/cx = 323.092
+shader_parameter/cy = 336.344
+shader_parameter/k1 = 0.721784
+shader_parameter/k2 = 0.300272
+shader_parameter/k3 = 0.0169864
+shader_parameter/k4 = 1.05876
+shader_parameter/k5 = 0.479511
+shader_parameter/k6 = 0.0855306
+shader_parameter/p1 = 5.97161e-05
+shader_parameter/p2 = 5.87187e-05
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_5vw27"]
+shader = ExtResource("2_h2yge")
+shader_parameter/sigma_spatial = 2.0
+shader_parameter/sigma_intensity = 0.1
+shader_parameter/kernel_size = 15
+shader_parameter/alpha = 0.6
+shader_parameter/min_depth = 0.45
 shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
 shader_parameter/fx = 503.014
 shader_parameter/fy = 503.004
@@ -60,7 +83,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 	elif event.is_action_pressed(\"ui_cancel\"):
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_VISIBLE:
-			get_tree().quit()
+			$\"../Sandbox\".notification(NOTIFICATION_WM_CLOSE_REQUEST)
 		else:
 			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	
@@ -109,20 +132,29 @@ directional_shadow_max_distance = 10000.0
 [node name="Kinect" type="Kinect" parent="."]
 unique_name_in_owner = true
 
-[node name="SubViewport" type="SubViewport" parent="."]
+[node name="FilterTexture" type="Node" parent="."]
+script = ExtResource("2_272bh")
+
+[node name="SubViewportA" type="SubViewport" parent="FilterTexture"]
 unique_name_in_owner = true
 size = Vector2i(640, 576)
-render_target_update_mode = 4
 
-[node name="FilteredTexture" type="Sprite2D" parent="SubViewport"]
-unique_name_in_owner = true
-material = SubResource("ShaderMaterial_1bvp3")
+[node name="SpriteA" type="Sprite2D" parent="FilterTexture/SubViewportA"]
+material = SubResource("ShaderMaterial_272bh")
 centered = false
 
-[node name="Sandbox" type="AnimatableBody3D" parent="." node_paths=PackedStringArray("image_conversion", "filtered_texture")]
+[node name="SubViewportB" type="SubViewport" parent="FilterTexture"]
+unique_name_in_owner = true
+size = Vector2i(640, 576)
+
+[node name="SpriteB" type="Sprite2D" parent="FilterTexture/SubViewportB"]
+material = SubResource("ShaderMaterial_5vw27")
+centered = false
+
+[node name="Sandbox" type="AnimatableBody3D" parent="." node_paths=PackedStringArray("image_conversion", "filter_texture")]
 script = ExtResource("3_1bvp3")
 image_conversion = NodePath("../ImageConversion")
-filtered_texture = NodePath("../SubViewport/FilteredTexture")
+filter_texture = NodePath("../FilterTexture")
 use_color_image = false
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Sandbox"]

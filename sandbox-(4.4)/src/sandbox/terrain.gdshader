@@ -7,6 +7,9 @@ uniform float height_scale = 10.0; // Scale factor
 uniform float min_depth = 0.5;
 uniform float max_depth = 0.57;
 
+const float min_depth_depth = 4.5;
+const float max_depth_depth = 10.5;
+
 uniform sampler2D color_texture;
 // for scaling and positioning the color texture
 uniform vec2 color_scale = vec2(0.455, 0.791);
@@ -58,7 +61,8 @@ void vertex() {
 	} else {
 		VERTEX.y -= 10.0;
 	}*/
-	VERTEX.y -= texture(depth_texture, UV).r * height_scale;
+	float depth = texture(depth_texture, UV).r * height_scale;
+	VERTEX.y -= depth;
 }
 
 void fragment() {

@@ -2,7 +2,7 @@ extends AnimatableBody3D
 
 
 @export var image_conversion: Node
-@export var filtered_texture: Sprite2D
+@export var filter_texture: Node
 
 @export var use_kinect: bool = true
 @export var use_color_image: bool = true
@@ -77,18 +77,7 @@ func _ready() -> void:
 		# extract the camera intrinsics and apply them to the shader
 		var depth_params: Array = kinect.extract_camera_parameters()
 		if not depth_params.is_empty():
-			filtered_texture.material.set("shader_parameter/fx", depth_params[0])
-			filtered_texture.material.set("shader_parameter/fy", depth_params[1])
-			filtered_texture.material.set("shader_parameter/cx", depth_params[2])
-			filtered_texture.material.set("shader_parameter/cy", depth_params[3])
-			filtered_texture.material.set("shader_parameter/k1", depth_params[4])
-			filtered_texture.material.set("shader_parameter/k2", depth_params[5])
-			filtered_texture.material.set("shader_parameter/k3", depth_params[6])
-			filtered_texture.material.set("shader_parameter/k4", depth_params[7])
-			filtered_texture.material.set("shader_parameter/k5", depth_params[8])
-			filtered_texture.material.set("shader_parameter/k6", depth_params[9])
-			filtered_texture.material.set("shader_parameter/p1", depth_params[10])
-			filtered_texture.material.set("shader_parameter/p2", depth_params[11])
+			filter_texture.set_lens_distortion_params(depth_params)
 	
 	adjust_position_of_sandbox()
 	
@@ -101,11 +90,16 @@ func adjust_position_of_sandbox() -> void:
 	self.position.y = -10.0 - depth
 
 ## filters a texture with a shader and returns it
-func filter_texture(texture: Texture2D) -> Texture2D:
-	filtered_texture.texture = texture
-	filtered_texture.material.set("shader_parameter/depth_texture", texture)
-	await get_tree().process_frame
-	return %SubViewport.get_texture()
+#var previous_depth_texture: Texture2D = null # frame buffer
+#func filter_texture(texture: Texture2D) -> Texture2D:
+	#filtered_texture.texture = texture
+	##filtered_texture.material.set("shader_parameter/depth_texture", texture)
+	#filtered_texture.material.set("shader_parameter/previous_frame", previous_depth_texture)
+	#%SubViewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	#await get_tree().process_frame
+	#var new_texture = %SubViewport.get_texture()
+	#previous_depth_texture = new_texture
+	#return new_texture
 
 ## converts texture to image and applies it to the heightmapshape
 func set_heightmap(texture: Texture2D) -> void:
@@ -180,7 +174,7 @@ func set_cut_box() -> void:
 		cut_box.w -= 0.001
 		print("cut_bottom_down to " + str(cut_box))
 	
-	filtered_texture.material.set("shader_parameter/cut_box", cut_box)
+	filter_texture.set_boundary_box(cut_box)
 
 var recording: bool = false
 func _physics_process(_delta: float) -> void:
@@ -243,7 +237,6 @@ func update_sandbox() -> void:
 
 ## cant be in thread because modifying something
 ## very spaghetti :(
-var previous_depth_texture: Texture2D = null # frame buffer
 func finish_update(image_rg8) -> void:
 	var depth = null
 	var color = null
@@ -260,12 +253,8 @@ func finish_update(image_rg8) -> void:
 	if depth != null:
 		var image_rf = image_conversion.process_image(depth)
 		var texture = ImageTexture.create_from_image(image_rf)
-		var modified_texture = await filter_texture(texture)
+		var modified_texture = await filter_texture.filter_texture(texture)
 		%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)
-		%MeshInstance3D.material_override.set("shader_parameter/previous_frame", previous_depth_texture)
-		$"../Sprite3D".texture = previous_depth_texture
-		previous_depth_texture = modified_texture
-		#%MeshInstance3D.material_override.set("shader_parameter/color_texture", modified_texture)
 		set_heightmap(modified_texture)
 		$"../Sprite3D2".texture = modified_texture
 	if color != null:
@@ -276,6 +265,7 @@ func finish_update(image_rg8) -> void:
 ## stop the thread and close the kinect when exiting
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		kinect.close_kinect()
+		running = false
 		thread.wait_to_finish()
+		kinect.close_kinect()
 		get_tree().quit()
