@@ -66,29 +66,31 @@ bool Kinect::initialize_kinect(int device_index) {
 }
 
 // function to print camera parameters for use in shader to counter distortion
-Array Kinect::extract_camera_parameters() {
+Array Kinect::extract_camera_parameters(bool print) {
     k4a_calibration_t calibration;
     Array depth_params_array;
     if (k4a_device_get_calibration(kinect_device, config.depth_mode, config.color_resolution, &calibration) == K4A_RESULT_SUCCEEDED) {
         auto depth_params = calibration.depth_camera_calibration.intrinsics.parameters.param;
-        UtilityFunctions::print("DEPTH CAMERA INTRINSICS:");
-        // for direct copy to the shader
-        UtilityFunctions::print("// focal length");
-        UtilityFunctions::print(String("uniform float fx = {0};").format(Array::make(depth_params.fx)));
-        UtilityFunctions::print(String("uniform float fy = {0};").format(Array::make(depth_params.fy)));
-        UtilityFunctions::print("// principal point");
-        UtilityFunctions::print(String("uniform float cx = {0};").format(Array::make(depth_params.cx)));
-        UtilityFunctions::print(String("uniform float cy = {0};").format(Array::make(depth_params.cy)));
-        UtilityFunctions::print("// radial distortion");
-        UtilityFunctions::print(String("uniform float k1 = {0};").format(Array::make(depth_params.k1)));
-        UtilityFunctions::print(String("uniform float k2 = {0};").format(Array::make(depth_params.k2)));
-        UtilityFunctions::print(String("uniform float k3 = {0};").format(Array::make(depth_params.k3)));
-        UtilityFunctions::print(String("uniform float k4 = {0};").format(Array::make(depth_params.k4)));
-        UtilityFunctions::print(String("uniform float k5 = {0};").format(Array::make(depth_params.k5)));
-        UtilityFunctions::print(String("uniform float k6 = {0};").format(Array::make(depth_params.k6)));
-        UtilityFunctions::print("// tangential distortion");
-        UtilityFunctions::print(String("uniform float p1 = {0};").format(Array::make(depth_params.p1)));
-        UtilityFunctions::print(String("uniform float p2 = {0};").format(Array::make(depth_params.p2)));
+        if (print) {
+            UtilityFunctions::print("DEPTH CAMERA INTRINSICS:");
+            // for direct copy to the shader
+            UtilityFunctions::print("// focal length");
+            UtilityFunctions::print(String("uniform float fx = {0};").format(Array::make(depth_params.fx)));
+            UtilityFunctions::print(String("uniform float fy = {0};").format(Array::make(depth_params.fy)));
+            UtilityFunctions::print("// principal point");
+            UtilityFunctions::print(String("uniform float cx = {0};").format(Array::make(depth_params.cx)));
+            UtilityFunctions::print(String("uniform float cy = {0};").format(Array::make(depth_params.cy)));
+            UtilityFunctions::print("// radial distortion");
+            UtilityFunctions::print(String("uniform float k1 = {0};").format(Array::make(depth_params.k1)));
+            UtilityFunctions::print(String("uniform float k2 = {0};").format(Array::make(depth_params.k2)));
+            UtilityFunctions::print(String("uniform float k3 = {0};").format(Array::make(depth_params.k3)));
+            UtilityFunctions::print(String("uniform float k4 = {0};").format(Array::make(depth_params.k4)));
+            UtilityFunctions::print(String("uniform float k5 = {0};").format(Array::make(depth_params.k5)));
+            UtilityFunctions::print(String("uniform float k6 = {0};").format(Array::make(depth_params.k6)));
+            UtilityFunctions::print("// tangential distortion");
+            UtilityFunctions::print(String("uniform float p1 = {0};").format(Array::make(depth_params.p1)));
+            UtilityFunctions::print(String("uniform float p2 = {0};").format(Array::make(depth_params.p2)));
+        }
         depth_params_array.push_back(depth_params.fx);
         depth_params_array.push_back(depth_params.fy);
         depth_params_array.push_back(depth_params.cx);

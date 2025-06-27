@@ -75,7 +75,7 @@ func _ready() -> void:
 		finish_update(frame_data)
 		
 		# extract the camera intrinsics and apply them to the shader
-		var depth_params: Array = kinect.extract_camera_parameters()
+		var depth_params: Array = kinect.extract_camera_parameters(false)
 		if not depth_params.is_empty():
 			filter_texture.set_lens_distortion_params(depth_params)
 	

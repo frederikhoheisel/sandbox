@@ -27,7 +27,7 @@ public:
     ~Kinect();
 
     static void kinect_log_callback(void *context, k4a_log_level_t level, const char *file, const int line, const char *message);
-    Array extract_camera_parameters();
+    Array extract_camera_parameters(bool print);
     bool initialize_kinect(int device_index = 0);
     void close_kinect();
     bool start_cameras();

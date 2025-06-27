@@ -2,10 +2,10 @@
 
 [ext_resource type="PackedScene" uid="uid://b4kad2kuba1yn" path="res://addons/godot-xr-tools/hands/scenes/lowpoly/left_hand_low.tscn" id="1_rviqj"]
 [ext_resource type="PackedScene" uid="uid://l2n30mpbkdyw" path="res://addons/godot-xr-tools/hands/scenes/lowpoly/right_hand_low.tscn" id="2_6bycm"]
-[ext_resource type="PackedScene" uid="uid://kyhaogt0a4q8" path="res://addons/godot-xr-tools/functions/movement_flight.tscn" id="2_h46kc"]
 [ext_resource type="PackedScene" uid="uid://diyu06cw06syv" path="res://addons/godot-xr-tools/player/player_body.tscn" id="3_6bycm"]
 [ext_resource type="PackedScene" uid="uid://b6bk2pj8vbj28" path="res://addons/godot-xr-tools/functions/movement_turn.tscn" id="3_ivx6q"]
 [ext_resource type="Script" uid="uid://clkf843hewldi" path="res://addons/godot-xr-tools/overrides/ground_physics_settings.gd" id="5_wle4u"]
+[ext_resource type="PackedScene" uid="uid://chcuj3jysipk8" path="res://addons/godot-xr-tools/functions/movement_jog.tscn" id="6_ivx6q"]
 
 [sub_resource type="Resource" id="Resource_ivx6q"]
 script = ExtResource("5_wle4u")
@@ -45,4 +45,4 @@ physics = SubResource("Resource_ivx6q")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PlayerBody"]
 shape = SubResource("CapsuleShape3D_h46kc")
 
-[node name="MovementFlight" parent="." instance=ExtResource("2_h46kc")]
+[node name="MovementJog" parent="." instance=ExtResource("6_ivx6q")]
