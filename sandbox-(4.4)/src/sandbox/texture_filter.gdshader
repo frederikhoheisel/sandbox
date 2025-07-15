@@ -194,7 +194,7 @@ void fragment() {
 	//motion_factor = clamp(motion_factor * 5.0, 0.0, 1.0);
 	//center_depth = adaptive_exponential_smooth(center_depth_filtered, previous_depth, motion_factor);
 	
-	previous_depth = clamp(previous_depth, 1.0, 100.0);
+	//previous_depth = clamp(previous_depth, 1.0, 100.0);
 	
 	// with edge detection
 	//if (previous_depth < min_depth) {

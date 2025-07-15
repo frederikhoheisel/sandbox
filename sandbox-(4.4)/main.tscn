@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=22 format=3 uid="uid://bhiygikt77fg6"]
 
 [ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
 [ext_resource type="Script" uid="uid://c5rpm7yey6ijs" path="res://filter_texture.gd" id="2_272bh"]
@@ -55,7 +55,7 @@ sky = SubResource("Sky_efxa6")
 shader = ExtResource("2_h2yge")
 shader_parameter/sigma_spatial = 2.0
 shader_parameter/sigma_intensity = 0.1
-shader_parameter/kernel_size = 15
+shader_parameter/kernel_size = 3
 shader_parameter/alpha = 0.7
 shader_parameter/min_depth = 0.45
 shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
@@ -76,7 +76,7 @@ shader_parameter/p2 = 5.87187e-05
 shader = ExtResource("2_h2yge")
 shader_parameter/sigma_spatial = 2.0
 shader_parameter/sigma_intensity = 0.1
-shader_parameter/kernel_size = 15
+shader_parameter/kernel_size = 3
 shader_parameter/alpha = 0.7
 shader_parameter/min_depth = 0.45
 shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
@@ -92,6 +92,9 @@ shader_parameter/k5 = 0.479511
 shader_parameter/k6 = 0.0855306
 shader_parameter/p1 = 5.97161e-05
 shader_parameter/p2 = 5.87187e-05
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_efxa6"]
+viewport_path = NodePath("FilterTexture/SubViewportA")
 
 [sub_resource type="GDScript" id="GDScript_0xm2m"]
 script/source = "extends Node3D
@@ -167,6 +170,10 @@ render_target_update_mode = 0
 [node name="SpriteB" type="Sprite2D" parent="FilterTexture/SubViewportB"]
 material = SubResource("ShaderMaterial_dg77c")
 centered = false
+
+[node name="Sprite3D" type="Sprite3D" parent="FilterTexture"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.00437, 0, 0)
+texture = SubResource("ViewportTexture_efxa6")
 
 [node name="Sandbox" type="AnimatableBody3D" parent="." node_paths=PackedStringArray("image_conversion", "filter_texture")]
 collision_layer = 17

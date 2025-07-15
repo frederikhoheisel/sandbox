@@ -23,20 +23,20 @@ uniform vec3 high_color: source_color = vec3(1.0, 0.0, 0.0); // red for peaks
 void vertex() {
 	float depth = texture(depth_texture, UV).r * height_scale;
 	VERTEX.y -= depth;
-	
+
 	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
-	
+
 	float up = texture(depth_texture, UV + texel_size * vec2(0.0, 1.0)).r;
 	float right = texture(depth_texture, UV + texel_size * vec2(1.0, 0.0)).r;
 	float left = texture(depth_texture, UV + texel_size * vec2(-1.0, 0.0)).r;
 	float down = texture(depth_texture, UV + texel_size * vec2(0.0, -1.0)).r;
-	
+
 	vec3 a = vec3(2.0 * texel_size.x, 0.0, right - left);
 	vec3 b = vec3( 0.0, 2.0 * texel_size.y, up - down);
-	
+
 	//vec3 a = vec3(2.0 * texel_size.x, right - left, 0.0);
 	//vec3 b = vec3( 0.0, up - down, 2.0 * texel_size.y);
-	
+
 	NORMAL = -normalize(cross(a, b));
 }
 

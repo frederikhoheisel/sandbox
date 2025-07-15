@@ -18,28 +18,44 @@ func _ready() -> void:
 	pass
 
 func filter_texture(new_texture: Texture2D) -> Texture2D:
-	if current_buffer == 0:
-		sprite_a.texture = new_texture
-		var prev_texture = sub_viewport_b.get_texture()
-		$"../Sprite3D3".texture = prev_texture
-		sprite_a.material.set("shader_parameter/previous_frame", prev_texture)
-		
-		sub_viewport_a.render_target_update_mode = SubViewport.UPDATE_ONCE
-		await get_tree().process_frame
-		current_buffer = 1
-		$"../Sprite3D".texture = sub_viewport_a.get_texture()
-		return sub_viewport_a.get_texture()
-	else:
-		sprite_b.texture = new_texture
-		var prev_texture = sub_viewport_a.get_texture()
-		$"../Sprite3D4".texture = prev_texture
-		sprite_b.material.set("shader_parameter/previous_frame", prev_texture)
-		
-		sub_viewport_b.render_target_update_mode = SubViewport.UPDATE_ONCE
-		await get_tree().process_frame
-		current_buffer = 0
-		$"../Sprite3D2".texture = sub_viewport_b.get_texture()
-		return sub_viewport_b.get_texture()
+	printt("new: ", new_texture.get_image().get_format())
+	sprite_b.texture = sub_viewport_a.get_texture()
+	sub_viewport_b.render_target_update_mode = SubViewport.UPDATE_ONCE
+	await get_tree().process_frame
+	
+	var prev_texture = sub_viewport_b.get_texture()
+	printt("prev: ", prev_texture.get_image().get_format())
+	
+	$"../Sprite3D3".texture = prev_texture
+	sprite_a.material.set("shader_parameter/previous_frame", prev_texture)
+	sprite_a.texture = new_texture
+	
+	sub_viewport_a.render_target_update_mode = SubViewport.UPDATE_ONCE
+	await get_tree().process_frame
+	#$"../Sprite3D".texture = sub_viewport_a.get_texture()
+	return sub_viewport_a.get_texture()
+	#if current_buffer == 0:
+		#sprite_a.texture = new_texture
+		#var prev_texture = sub_viewport_b.get_texture()
+		#$"../Sprite3D3".texture = prev_texture
+		#sprite_a.material.set("shader_parameter/previous_frame", prev_texture)
+		#
+		#sub_viewport_a.render_target_update_mode = SubViewport.UPDATE_ONCE
+		#await get_tree().process_frame
+		#current_buffer = 1
+		#$"../Sprite3D".texture = sub_viewport_a.get_texture()
+		#return sub_viewport_a.get_texture()
+	#else:
+		#sprite_b.texture = new_texture
+		#var prev_texture = sub_viewport_a.get_texture()
+		#$"../Sprite3D4".texture = prev_texture
+		#sprite_b.material.set("shader_parameter/previous_frame", prev_texture)
+		#
+		#sub_viewport_b.render_target_update_mode = SubViewport.UPDATE_ONCE
+		#await get_tree().process_frame
+		#current_buffer = 0
+		#$"../Sprite3D2".texture = sub_viewport_b.get_texture()
+		#return sub_viewport_b.get_texture()
 
 func set_lens_distortion_params(depth_params: Array) -> void:
 	sprite_a.material.set("shader_parameter/fx", depth_params[0])
