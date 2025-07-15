@@ -1,0 +1,93 @@
+[gd_scene load_steps=7 format=3 uid="uid://d0js3xcq6wedw"]
+
+[ext_resource type="Script" uid="uid://cw56s5ets50lm" path="res://src/game/objective_area.gd" id="1_qocto"]
+[ext_resource type="PackedScene" uid="uid://by0ufflmxjvb0" path="res://src/game/probe.tscn" id="2_fccsv"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fccsv"]
+transparency = 1
+diffuse_mode = 3
+specular_mode = 1
+albedo_color = Color(0.4, 1, 1, 0.556863)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7brxr"]
+material = SubResource("StandardMaterial3D_fccsv")
+size = Vector3(4, 4, 4)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lkp7s"]
+cull_mode = 1
+shading_mode = 0
+specular_mode = 1
+albedo_color = Color(5.77569e-07, 0.592643, 0.594441, 0.556863)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tu4n7"]
+material = SubResource("StandardMaterial3D_lkp7s")
+size = Vector3(4.1, 4.1, 4.1)
+
+[node name="ObjectiveArea" type="Node3D"]
+script = ExtResource("1_qocto")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_7brxr")
+
+[node name="OutlineMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_tu4n7")
+
+[node name="GroundRayCast3D" type="RayCast3D" parent="."]
+enabled = false
+target_position = Vector3(0, -200, 0)
+collision_mask = 16
+
+[node name="ProbeContainerInside" type="Node3D" parent="."]
+
+[node name="Probe" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
+
+[node name="Probe2" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 2)
+
+[node name="Probe3" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, 0)
+
+[node name="Probe4" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 2, -2)
+
+[node name="Probe5" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -2)
+
+[node name="Probe6" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2, -2)
+
+[node name="Probe7" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2, 0)
+
+[node name="Probe8" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 2, 2)
+
+[node name="Probe9" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 2)
+
+[node name="Probe10" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 2)
+
+[node name="Probe11" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0)
+
+[node name="Probe12" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, -2)
+
+[node name="Probe13" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
+
+[node name="Probe14" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, -2)
+
+[node name="Probe15" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
+
+[node name="Probe16" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 2)
+
+[node name="Probe17" parent="ProbeContainerInside" instance=ExtResource("2_fccsv")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2)
+
+[node name="ProbeContainerOutside" type="Node3D" parent="."]

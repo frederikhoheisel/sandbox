@@ -1,0 +1,19 @@
+[gd_scene load_steps=4 format=3 uid="uid://by0ufflmxjvb0"]
+
+[ext_resource type="Script" uid="uid://dghqnu146br8t" path="res://src/game/probe.gd" id="1_dfab7"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dfab7"]
+resource_local_to_scene = true
+albedo_color = Color(1, 0, 0, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_dfab7"]
+resource_local_to_scene = true
+material = SubResource("StandardMaterial3D_dfab7")
+radius = 0.2
+height = 0.4
+
+[node name="Probe" type="Node3D"]
+script = ExtResource("1_dfab7")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_dfab7")

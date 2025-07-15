@@ -10,7 +10,7 @@ uniform float sigma_intensity = 0.05; // controls edge preservation
 uniform int kernel_size = 3;
 
 /** parameters for exponential smoothing */
-uniform sampler2D previous_frame : repeat_disable, filter_nearest;
+uniform sampler2D previous_frame : repeat_disable;
 uniform float alpha = 0.3;
 
 uniform float min_depth = 0.45;
@@ -163,7 +163,7 @@ bool edge_detection(vec2 texel_size, sampler2D tex, vec2 uv) {
 	
 	for(int i = 0; i < directions.length(); i++) {
 		vec2 offset = directions[i] * texel_size;
-		float neighbor_depth = texture(tex, uv + offset).r / max_depth;
+		float neighbor_depth = texture(tex, uv + offset).r;
 		
 		min_neighbor = min(min_neighbor, neighbor_depth);
 		max_neighbor = max(max_neighbor, neighbor_depth);
@@ -179,35 +179,49 @@ bool edge_detection(vec2 texel_size, sampler2D tex, vec2 uv) {
 void fragment() {
 	vec2 undistorted_uv = undistort_pixel(UV); // undistort the lens distortion and angle
 	vec2 texel_size = 1.0 / vec2(textureSize(TEXTURE, 0));
-	//vec2 undistorted_uv = UV;
-	float center_depth = texture(TEXTURE, undistorted_uv).r;
-	//float center_depth = COLOR.r / max_depth;
+	float center_depth; // = texture(TEXTURE, undistorted_uv).r / max_depth;
 	
 	float center_depth_filtered = bilateral_filter(TEXTURE, undistorted_uv, texel_size);
-	center_depth_filtered -= UV.y * 0.079; // to balance out tilt
+	center_depth_filtered -= UV.y * 0.081; // to balance out tilt
 	//center_depth_filtered -= undistorted_uv.y * 0.084;
 	
 	float previous_depth = texture(previous_frame, UV).r;
 	
+	//center_depth = center_depth_filtered;
 	center_depth = exponential_smooth(center_depth_filtered, previous_depth);
+	
 	//float motion_factor = center_depth_filtered - previous_depth;
 	//motion_factor = clamp(motion_factor * 5.0, 0.0, 1.0);
 	//center_depth = adaptive_exponential_smooth(center_depth_filtered, previous_depth, motion_factor);
-
-	if (edge_detection(texel_size, TEXTURE, undistorted_uv) || center_depth < min_depth) {
-		COLOR.r = max_depth;
-	} else {
-		COLOR.r = center_depth;
-	}
+	
+	previous_depth = clamp(previous_depth, 1.0, 100.0);
+	
+	// with edge detection
+	//if (previous_depth < min_depth) {
+		if (edge_detection(texel_size, TEXTURE, undistorted_uv) || center_depth < min_depth) {
+			COLOR.r = previous_depth;
+		} else {
+			COLOR.r = center_depth;
+		}
+	//} else {
+		//COLOR.r = max_depth;
+	//}
+	
+	// without edge detection
+	//if (center_depth < min_depth) {
+		//COLOR.r = previous_depth;
+	//} else {
+		//COLOR.r = center_depth;
+	//}
 
 	/* // for debugging the uv distortion
 	if(undistorted_uv.x <= 0.0 || undistorted_uv.x >= 1.0 || undistorted_uv.y <= 0.0 || undistorted_uv.y >= 1.0) {
 		COLOR.g = 255.0;
 	}*/
 
-	if(UV.x < cut_box.x || UV.x > cut_box.y || UV.y < cut_box.z || UV.y > cut_box.w) {
-		COLOR.r = max_depth;
-	}
+	//if(UV.x < cut_box.x || UV.x > cut_box.y || UV.y < cut_box.z || UV.y > cut_box.w) {
+		//COLOR.r = max_depth;
+	//}
 }
 
 //void light() {

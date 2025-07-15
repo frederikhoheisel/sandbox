@@ -300,6 +300,7 @@ func _on_enter_webxr_button_pressed() -> void:
 func _set_xr_frame_rate() -> void:
 	# Get the reported refresh rate
 	xr_frame_rate = xr_interface.get_display_refresh_rate()
+	#xr_frame_rate = 144.0
 	if xr_frame_rate > 0:
 		print("StartXR: Refresh rate reported as ", str(xr_frame_rate))
 	else:
@@ -324,7 +325,7 @@ func _set_xr_frame_rate() -> void:
 	var active_rate := xr_frame_rate if xr_frame_rate > 0 else 144.0
 	var physics_rate := int(round(active_rate * physics_rate_multiplier))
 	print("StartXR: Setting physics rate to ", physics_rate)
-	#Engine.physics_ticks_per_second = physics_rate
+	Engine.physics_ticks_per_second = 30.0
 
 
 # Find the closest value in the array to the target

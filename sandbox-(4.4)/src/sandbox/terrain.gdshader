@@ -21,48 +21,23 @@ uniform vec3 mid_color: source_color = vec3(0.0, 1.0, 0.0); // green for mid-ran
 uniform vec3 high_color: source_color = vec3(1.0, 0.0, 0.0); // red for peaks
 
 void vertex() {
-	/*
-	float center_depth = texture(depth_texture, UV).r;
-	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
-
-	// Check if this pixel is near a depth discontinuity
-	bool is_edge = false;
-	float min_neighbor = 99999.0;
-	float max_neighbor = 0.0;
-
-	// Sample in cardinal directions (up, down, left, right) and combinations
-	vec2 directions[8] = {
-		vec2(0.0, 1.0),
-		vec2(0.0, -1.0),
-		vec2(1.0, 0.0),
-		vec2(-1.0, 0.0),
-		vec2(1.0, 1.0),
-		vec2(-1.0, 1.0),
-		vec2(1.0, -1.0),
-		vec2(-1.0, -1.0)
-	};
-
-	for(int i = 0; i < directions.length(); i++) {
-		vec2 offset = directions[i] * texel_size;
-		float neighbor_depth = texture(depth_texture, UV + offset).r + texture(depth_texture, UV + offset).g * 256.0;
-
-		min_neighbor = min(min_neighbor, neighbor_depth);
-		max_neighbor = max(max_neighbor, neighbor_depth);
-	}
-
-	// If depth difference is too large, this is an edge
-	if(max_neighbor - min_neighbor > edge_threshold) {
-		is_edge = true;
-	}
-
-	// Apply displacement, but not on edges
-	if(!is_edge && center_depth > min_depth) {
-		VERTEX -= NORMAL * center_depth * height_scale;
-	} else {
-		VERTEX.y -= 10.0;
-	}*/
 	float depth = texture(depth_texture, UV).r * height_scale;
 	VERTEX.y -= depth;
+	
+	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
+	
+	float up = texture(depth_texture, UV + texel_size * vec2(0.0, 1.0)).r;
+	float right = texture(depth_texture, UV + texel_size * vec2(1.0, 0.0)).r;
+	float left = texture(depth_texture, UV + texel_size * vec2(-1.0, 0.0)).r;
+	float down = texture(depth_texture, UV + texel_size * vec2(0.0, -1.0)).r;
+	
+	vec3 a = vec3(2.0 * texel_size.x, 0.0, right - left);
+	vec3 b = vec3( 0.0, 2.0 * texel_size.y, up - down);
+	
+	//vec3 a = vec3(2.0 * texel_size.x, right - left, 0.0);
+	//vec3 b = vec3( 0.0, up - down, 2.0 * texel_size.y);
+	
+	NORMAL = -normalize(cross(a, b));
 }
 
 void fragment() {
@@ -120,9 +95,9 @@ void fragment() {
 		ALBEDO = color;
 
 		// Add some material properties based on height
-		ROUGHNESS = 0.3 + normalized_height * 0.4; // Higher areas are less rough
-		METALLIC = normalized_height * 0.2; // Higher areas have slight metallic sheen
-
-		SPECULAR = normalized_height * 0.5;
+		//ROUGHNESS = 0.3 + normalized_height * 0.4; // Higher areas are less rough
+		//METALLIC = normalized_height * 0.2; // Higher areas have slight metallic sheen
+//
+		//SPECULAR = normalized_height * 0.5;
 	}
 }

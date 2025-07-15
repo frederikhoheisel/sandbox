@@ -110,7 +110,6 @@ func process_image(input_image: Image) -> Image:
 	return output_image
 
 func _exit_tree():
-	# Clean up resources when the node exits the tree
 	if rd:
 		rd.free_rid(pipeline)
 		rd.free_rid(shader)
