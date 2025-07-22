@@ -58,7 +58,7 @@ func _ready() -> void:
 	heightmap_shape.map_width = 2
 	heightmap_shape.map_depth = 2
 	collision_shape.shape = heightmap_shape
-	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -30.0, DEPTH / PIXEL_DEPTH)
+	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
 	collision_shape.scale *= SANDBOX_SCALE
 	
 	## enable or disable the color image in the shader
@@ -81,9 +81,10 @@ func _ready() -> void:
 			finish_update_depth(image_rg8)
 		
 		# extract the camera intrinsics and apply them to the shader
-		var depth_params: Array = kinect.extract_camera_parameters(false)
-		if not depth_params.is_empty():
-			filter_texture.set_lens_distortion_params(depth_params)
+		# currently broken
+		#var depth_params: Array = kinect.extract_camera_parameters(false)
+		#if not depth_params.is_empty():
+			#filter_texture.set_lens_distortion_params(depth_params)
 	
 	adjust_position_of_sandbox()
 	
@@ -109,11 +110,9 @@ func adjust_position_of_sandbox() -> void:
 	#return new_texture
 
 ## converts texture to image and applies it to the heightmapshape
-func set_heightmap(texture: Texture2D) -> void:
-	var image = image_conversion.process_image(texture.get_image())
-	#var image = texture.get_image()
-	#image.convert(Image.FORMAT_RF)
+func set_heightmap(image: Image) -> void:
 	heightmap_shape.update_map_data_from_image(image, 0.0, 1.0)
+	#printt(heightmap_shape.get_max_height(), heightmap_shape.get_min_height())
 
 ## helper function to adjust the color image and fit it to the depth data
 var color_img_scale: Vector2 = Vector2(0.455, 0.791)
@@ -276,23 +275,25 @@ func finish_update(image_rg8) -> void:
 		$"../Sprite3D".texture = color_texture
 
 var i: int = 0
+var prev_image: Image = null
 func finish_update_depth(depth_image_rg8) -> void:
 	if depth_image_rg8 != null:
 		#var image_rf = depth_image_rg8.convert(Image.FORMAT_RF)
-		var image_rf = image_conversion.process_image(depth_image_rg8)
+		var image_rf = image_conversion.process_image(depth_image_rg8, prev_image)
+		prev_image = image_rf
 		var texture = ImageTexture.create_from_image(image_rf)
-		var modified_texture = await filter_texture.filter_texture(texture)
-		mesh.material.set("shader_parameter/depth_texture", modified_texture)
+		#var modified_texture = await filter_texture.filter_texture(texture)
+		mesh.material.set("shader_parameter/depth_texture", texture)
 		i += 1
 		if i % 5 == 0:
-			set_heightmap(modified_texture)
+			set_heightmap(image_rf)
 			i = 0
 		#(0.097, 0.881, 0.196, 0.753) (left, right, top, bottom)
-		var cut_image = modified_texture.get_image().get_region(sandbox_rect)
-		var cut_texture = ImageTexture.create_from_image(cut_image)
-		%ProjectorWindow.cut_depth_texture = cut_texture
-		#$"../Sprite3D2".texture = texture
-		#$"../Sprite3D".texture = modified_texture
+		#var cut_image = modified_texture.get_image().get_region(sandbox_rect)
+		#var cut_texture = ImageTexture.create_from_image(cut_image)
+		#%ProjectorWindow.cut_depth_texture = cut_texture
+		$"../Sprite3D2".texture = ImageTexture.create_from_image(prev_image)
+		$"../Sprite3D".texture = texture
 
 ## stop the thread and close the kinect when exiting
 func _notification(what):

@@ -78,23 +78,23 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 	// Convert back to pixel coordinates
 	// vec2 result = undistorted_norm + vec2(cx / resolution.x, cy / resolution.y);
 	vec2 undistorted_uv = undistorted_norm * vec2(fx / resolution.x, fy / resolution.y) + vec2(cx / resolution.x, cy / resolution.y);
-	
+
 	// Trapezoid distortion
 	vec2 center_uv = undistorted_uv - 0.5; // + center_offset;
-	
+
 	float width_scale = mix(bottom_width_ratio, top_width_ratio, (center_uv.y + 0.5));
-	
+
 	float perspective_factor = 1.0 + perspective_strength * center_uv.y;
-	
+
 	vec2 corrected_uv = vec2(
 			(center_uv.x / width_scale) / perspective_factor,
 			center_uv.y / perspective_factor);
-	
+
 	return corrected_uv + 0.5; // - center_offset;
 }
 
-/** 
-* gaussian distribution function 
+/**
+* gaussian distribution function
 */
 float gaussian(float x, float sigma) {
 	return exp(-(x * x) / (2.0 * sigma * sigma));
@@ -104,28 +104,28 @@ float bilateral_filter(sampler2D tex, vec2 uv, vec2 texel_size) {
 	float center_depth = texture(tex, uv).r / max_depth;
 	float filtered_depth = 0.0;
 	float weight_sum = 0.0;
-	
+
 	int half_kernel = kernel_size / 2;
 	for (int i = -half_kernel; i <= half_kernel; i++) {
 		for (int j = -half_kernel; j <= half_kernel; j++) {
 			vec2 offset = vec2(float(i), float(j)) * texel_size;
 			vec2 sample_uv = uv + offset;
-			
+
 			float sample_depth = texture(tex, sample_uv).r / max_depth;
-			
+
 			float spatial_distance = length(vec2(float(i), float(j)));
 			float spatial_weight = gaussian(spatial_distance, sigma_spatial);
-			
+
 			float intensity_distance = length(sample_depth - center_depth);
 			float intensity_weight = gaussian(intensity_distance, sigma_intensity);
-			
+
 			float bilateral_weight = spatial_weight * intensity_weight;
-			
+
 			filtered_depth += sample_depth * bilateral_weight;
 			weight_sum += bilateral_weight;
 		}
 	}
-	
+
 	return weight_sum > 0.0 ? filtered_depth / weight_sum : center_depth;
 }
 
@@ -160,15 +160,15 @@ bool edge_detection(vec2 texel_size, sampler2D tex, vec2 uv) {
 		vec2(1.0, -1.0),
 		vec2(-1.0, -1.0)
 	};
-	
+
 	for(int i = 0; i < directions.length(); i++) {
 		vec2 offset = directions[i] * texel_size;
 		float neighbor_depth = texture(tex, uv + offset).r;
-		
+
 		min_neighbor = min(min_neighbor, neighbor_depth);
 		max_neighbor = max(max_neighbor, neighbor_depth);
 	}
-	
+
 	// If depth difference is too large, this is an edge
 	if(max_neighbor - min_neighbor > edge_threshold) {
 		is_edge = true;
@@ -180,22 +180,22 @@ void fragment() {
 	vec2 undistorted_uv = undistort_pixel(UV); // undistort the lens distortion and angle
 	vec2 texel_size = 1.0 / vec2(textureSize(TEXTURE, 0));
 	float center_depth; // = texture(TEXTURE, undistorted_uv).r / max_depth;
-	
+
 	float center_depth_filtered = bilateral_filter(TEXTURE, undistorted_uv, texel_size);
 	center_depth_filtered -= UV.y * 0.081; // to balance out tilt
 	//center_depth_filtered -= undistorted_uv.y * 0.084;
-	
+
 	float previous_depth = texture(previous_frame, UV).r;
-	
+
 	//center_depth = center_depth_filtered;
 	center_depth = exponential_smooth(center_depth_filtered, previous_depth);
-	
+
 	//float motion_factor = center_depth_filtered - previous_depth;
 	//motion_factor = clamp(motion_factor * 5.0, 0.0, 1.0);
 	//center_depth = adaptive_exponential_smooth(center_depth_filtered, previous_depth, motion_factor);
-	
+
 	//previous_depth = clamp(previous_depth, 1.0, 100.0);
-	
+
 	// with edge detection
 	//if (previous_depth < min_depth) {
 		if (edge_detection(texel_size, TEXTURE, undistorted_uv) || center_depth < min_depth) {
@@ -206,7 +206,7 @@ void fragment() {
 	//} else {
 		//COLOR.r = max_depth;
 	//}
-	
+
 	// without edge detection
 	//if (center_depth < min_depth) {
 		//COLOR.r = previous_depth;

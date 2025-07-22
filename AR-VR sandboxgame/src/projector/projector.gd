@@ -84,8 +84,8 @@ func _physics_process(_delta: float) -> void:
 	#print(str(track_obj.position.x) + "  " + str(track_obj.position.z))
 	_transform_projector_camera()
 
-var fov: float = 75.0
-var pos: Vector3 = Vector3(0.0, 10.0, 0.0)
+var fov: float = 69.0
+var pos: Vector3 = Vector3(0.0, 25.0, 0.0)
 var rotation_deg_x: float = -90.0
 func _transform_projector_camera() -> void:
 	var dx := Input.get_axis("cam_left", "cam_right")

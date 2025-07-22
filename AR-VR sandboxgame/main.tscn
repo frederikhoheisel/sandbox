@@ -1,9 +1,6 @@
-[gd_scene load_steps=22 format=3 uid="uid://bhiygikt77fg6"]
+[gd_scene load_steps=16 format=3 uid="uid://bhiygikt77fg6"]
 
-[ext_resource type="Script" uid="uid://b6tnwgnsqwddt" path="res://main.gd" id="1_ig7tw"]
-[ext_resource type="Script" uid="uid://c5rpm7yey6ijs" path="res://filter_texture.gd" id="2_272bh"]
 [ext_resource type="Shader" uid="uid://bdr7o32u4uefh" path="res://src/sandbox/sky.gdshader" id="2_dg77c"]
-[ext_resource type="Shader" uid="uid://c5idgerx3cadd" path="res://src/sandbox/texture_filter.gdshader" id="2_h2yge"]
 [ext_resource type="Script" uid="uid://cuw714rw4fm5b" path="res://src/sandbox/sandbox.gd" id="3_1bvp3"]
 [ext_resource type="Script" uid="uid://yx00t0xwj64j" path="res://src/sandbox/image_conversion.gd" id="3_h2yge"]
 [ext_resource type="PackedScene" uid="uid://biomxbk85ryjy" path="res://src/xrplayer/xr_player.tscn" id="5_lquwl"]
@@ -51,51 +48,6 @@ radiance_size = 0
 background_mode = 2
 sky = SubResource("Sky_efxa6")
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_efxa6"]
-shader = ExtResource("2_h2yge")
-shader_parameter/sigma_spatial = 2.0
-shader_parameter/sigma_intensity = 0.1
-shader_parameter/kernel_size = 3
-shader_parameter/alpha = 0.7
-shader_parameter/min_depth = 0.45
-shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
-shader_parameter/fx = 503.014
-shader_parameter/fy = 503.004
-shader_parameter/cx = 323.092
-shader_parameter/cy = 336.344
-shader_parameter/k1 = 0.721784
-shader_parameter/k2 = 0.300272
-shader_parameter/k3 = 0.0169864
-shader_parameter/k4 = 1.05876
-shader_parameter/k5 = 0.479511
-shader_parameter/k6 = 0.0855306
-shader_parameter/p1 = 5.97161e-05
-shader_parameter/p2 = 5.87187e-05
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_dg77c"]
-shader = ExtResource("2_h2yge")
-shader_parameter/sigma_spatial = 2.0
-shader_parameter/sigma_intensity = 0.1
-shader_parameter/kernel_size = 3
-shader_parameter/alpha = 0.7
-shader_parameter/min_depth = 0.45
-shader_parameter/cut_box = Vector4(0.097, 0.881, 0.196, 0.753)
-shader_parameter/fx = 503.014
-shader_parameter/fy = 503.004
-shader_parameter/cx = 323.092
-shader_parameter/cy = 336.344
-shader_parameter/k1 = 0.721784
-shader_parameter/k2 = 0.300272
-shader_parameter/k3 = 0.0169864
-shader_parameter/k4 = 1.05876
-shader_parameter/k5 = 0.479511
-shader_parameter/k6 = 0.0855306
-shader_parameter/p1 = 5.97161e-05
-shader_parameter/p2 = 5.87187e-05
-
-[sub_resource type="ViewportTexture" id="ViewportTexture_efxa6"]
-viewport_path = NodePath("FilterTexture/SubViewportA")
-
 [sub_resource type="GDScript" id="GDScript_0xm2m"]
 script/source = "extends Node3D
 
@@ -137,7 +89,6 @@ viewport_path = NodePath("ProjectorWindow/SubViewport")
 size = Vector3(0.5, 0.5, 0.5)
 
 [node name="Main" type="Node3D"]
-script = ExtResource("1_ig7tw")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_7mycd")
@@ -150,37 +101,12 @@ directional_shadow_blend_splits = true
 [node name="Kinect" type="Kinect" parent="."]
 unique_name_in_owner = true
 
-[node name="FilterTexture" type="Node" parent="."]
-script = ExtResource("2_272bh")
-
-[node name="SubViewportA" type="SubViewport" parent="FilterTexture"]
-unique_name_in_owner = true
-size = Vector2i(640, 576)
-render_target_update_mode = 0
-
-[node name="SpriteA" type="Sprite2D" parent="FilterTexture/SubViewportA"]
-material = SubResource("ShaderMaterial_efxa6")
-centered = false
-
-[node name="SubViewportB" type="SubViewport" parent="FilterTexture"]
-unique_name_in_owner = true
-size = Vector2i(640, 576)
-render_target_update_mode = 0
-
-[node name="SpriteB" type="Sprite2D" parent="FilterTexture/SubViewportB"]
-material = SubResource("ShaderMaterial_dg77c")
-centered = false
-
-[node name="Sprite3D" type="Sprite3D" parent="FilterTexture"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.00437, 0, 0)
-texture = SubResource("ViewportTexture_efxa6")
-
 [node name="Sandbox" type="AnimatableBody3D" parent="." node_paths=PackedStringArray("image_conversion", "filter_texture")]
 collision_layer = 17
 collision_mask = 17
 script = ExtResource("3_1bvp3")
 image_conversion = NodePath("../ImageConversion")
-filter_texture = NodePath("../FilterTexture")
+filter_texture = NodePath("")
 use_color_image = false
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Sandbox"]
@@ -217,15 +143,7 @@ target_refresh_rate = 120.0
 cast_shadow = 0
 
 [node name="Sprite3D2" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 0, 0)
-cast_shadow = 0
-
-[node name="Sprite3D3" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.5, 0)
-cast_shadow = 0
-
-[node name="Sprite3D4" type="Sprite3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.5, 6.5, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
 cast_shadow = 0
 
 [node name="ProjectorWindow" type="Window" parent="." node_paths=PackedStringArray("track_obj")]
