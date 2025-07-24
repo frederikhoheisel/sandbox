@@ -2,7 +2,6 @@ extends AnimatableBody3D
 
 
 @export var image_conversion: Node
-@export var filter_texture: Node
 
 @export var use_kinect: bool = true
 @export var use_color_image: bool = true
@@ -14,6 +13,7 @@ extends AnimatableBody3D
 var heightmap_shape := HeightMapShape3D.new()
 
 var running := false
+var game_running: bool = false
 #var depth_texture : ImageTexture
 
 const WIDTH := 10.0
@@ -22,10 +22,12 @@ const PIXEL_WIDTH := 640
 const PIXEL_DEPTH := 576
 
 const SANDBOX_SCALE := 10.0
+var scale_factor: float = 8.0 # for downscaling the collision shape
 var thread: Thread
 
 var sandbox_rect: Rect2
 var mesh: PlaneMesh
+
 
 func _ready() -> void:
 	sandbox_rect = Rect2(cut_box.x * PIXEL_WIDTH, cut_box.z * PIXEL_DEPTH, (cut_box.y - cut_box.x) * PIXEL_WIDTH, (cut_box.w - cut_box.z) * PIXEL_DEPTH)
@@ -60,6 +62,7 @@ func _ready() -> void:
 	collision_shape.shape = heightmap_shape
 	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
 	collision_shape.scale *= SANDBOX_SCALE
+	collision_shape.scale *= Vector3(scale_factor, 1.0, scale_factor)
 	
 	## enable or disable the color image in the shader
 	mesh.material.set("shader_parameter/use_real_colors", use_color_image)
@@ -71,7 +74,7 @@ func _ready() -> void:
 	
 		## do everything a bit
 		var image_rg8
-		for _i in 8:
+		for _i in 20:
 			if use_color_image:
 				image_rg8 = kinect.get_depth_and_color_image_rg8()
 			else:
@@ -111,7 +114,9 @@ func adjust_position_of_sandbox() -> void:
 
 ## converts texture to image and applies it to the heightmapshape
 func set_heightmap(image: Image) -> void:
-	heightmap_shape.update_map_data_from_image(image, 0.0, 1.0)
+	var heightmap_image = image.duplicate()
+	heightmap_image.resize(image.get_width() / scale_factor, image.get_height() / scale_factor, Image.INTERPOLATE_BILINEAR)
+	heightmap_shape.update_map_data_from_image(heightmap_image, 0.0, 1.0)
 	#printt(heightmap_shape.get_max_height(), heightmap_shape.get_min_height())
 
 ## helper function to adjust the color image and fit it to the depth data
@@ -180,8 +185,7 @@ func set_cut_box() -> void:
 	if Input.is_action_just_pressed("cut_bottom_down"):
 		cut_box.w -= 0.001
 		print("cut_bottom_down to " + str(cut_box))
-	
-	filter_texture.set_boundary_box(cut_box)
+
 
 var recording: bool = false
 func _physics_process(_delta: float) -> void:
@@ -196,7 +200,9 @@ func _physics_process(_delta: float) -> void:
 			running = not running
 			print("toggle running to: " + str(running))
 			if !thread.is_started():
-				$"../Game".place_objective()
+				if not game_running:
+					$"../Game".place_objective()
+					game_running = true
 				thread.start(update_sandbox)
 			else:
 				thread.wait_to_finish()
@@ -228,7 +234,7 @@ func play_recording() -> void:
 			var color_texture = ImageTexture.create_from_image(color)
 			#$"../Sprite3D".texture = color_texture # only for debugging
 			%MeshInstance3D.material_override.set("shader_parameter/color_texture", color_texture)
-		finish_update(depth_texture)
+		#finish_update(depth_texture)
 		await get_tree().create_timer(.1).timeout
 
 ## is in thread
@@ -238,41 +244,10 @@ func update_sandbox() -> void:
 		var image_rg8
 		if use_color_image:
 			image_rg8 = kinect.get_depth_and_color_image_rg8()
-			call_deferred("finish_update", image_rg8)
+			#call_deferred("finish_update", image_rg8)
 		else:
 			image_rg8 = kinect.get_depth_image_rg8()
 			call_deferred("finish_update_depth", image_rg8)
-
-## cant be in thread because modifying something
-## very spaghetti :(
-func finish_update(image_rg8) -> void:
-	var depth: Image = null
-	var color: Image = null
-	if use_color_image:
-		if not image_rg8.is_empty():
-			depth = image_rg8.get(0)
-			#print(depth)
-			if image_rg8.size() == 2:
-				color = image_rg8.get(1)
-	else:
-		depth = image_rg8
-	
-	if depth != null:
-		#depth.convert(Image.FORMAT_RF)
-		var image_rf = image_conversion.process_image(depth)
-		var texture = ImageTexture.create_from_image(image_rf) #image_rf
-		var modified_texture = await filter_texture.filter_texture(texture)
-		%MeshInstance3D.material_override.set("shader_parameter/depth_texture", modified_texture)
-		set_heightmap(modified_texture)
-		#(0.097, 0.881, 0.196, 0.753) (left, right, top, bottom)
-		var cut_image = modified_texture.get_image().get_region(Rect2(cut_box.x * PIXEL_WIDTH, cut_box.z * PIXEL_DEPTH, (cut_box.y - cut_box.x) * PIXEL_WIDTH, (cut_box.w - cut_box.z) * PIXEL_DEPTH))
-		var cut_texture = ImageTexture.create_from_image(cut_image)
-		%ProjectorWindow.cut_depth_texture = cut_texture
-		#$"../Sprite3D2".texture = cut_texture
-	if color != null:
-		var color_texture = ImageTexture.create_from_image(color)
-		%MeshInstance3D.material_override.set("shader_parameter/color_texture", color_texture)
-		$"../Sprite3D".texture = color_texture
 
 var i: int = 0
 var prev_image: Image = null
@@ -304,3 +279,8 @@ func _notification(what):
 		if thread.is_alive():
 			thread.wait_to_finish()
 		%ProjectorWindow.print_cam_params()
+
+
+func _on_fall_throughprotection_body_entered(body: Node3D) -> void:
+	if body is XRToolsPlayerBody:
+		body.get_parent().global_position.y = 0.0

@@ -44,6 +44,7 @@ script = ExtResource("4_842gf")
 
 [node name="PlayerBody" parent="." instance=ExtResource("3_6bycm")]
 collision_layer = 524289
+collision_mask = 1019
 physics = SubResource("Resource_842gf")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PlayerBody"]

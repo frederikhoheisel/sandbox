@@ -34,13 +34,21 @@ layout(set = 0, binding = 3, std430) restrict readonly buffer UniformBuffer {
 } uniforms;
 
 // Constants
+// bilateral filter
 const float sigma_spatial = 2.0;
 const float sigma_intensity = 0.05;
 const int kernel_size = 15;
-const float alpha = 0.1;
-const float min_depth = 0.1;
+
+// exponential filter
+const float alpha = 0.3;
+
+const float min_depth = 0.45;
 const float max_depth = 9.0;
+
+// edge detection
 const float edge_threshold = 0.05;
+
+// trapezoid correction
 const float top_width_ratio = 1.05;
 const float bottom_width_ratio = 1.0;
 const float perspective_strength = 0.1;
@@ -56,37 +64,37 @@ vec2 undistort_pixel(vec2 distorted_uv) {
     // Brown–Conrady model distortion
     vec2 center_offset = vec2(uniforms.cx / resolution.x, uniforms.cy / resolution.y);
     vec2 norm = (distorted_uv - center_offset) / vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y);
-    float x = norm.x;    
-    float y = norm.y;    
-    float r2 = x * x + y * y;    
-    float r4 = r2 * r2;    
-    float r6 = r4 * r2;    
+    float x = norm.x;
+    float y = norm.y;
+    float r2 = x * x + y * y;
+    float r4 = r2 * r2;
+    float r6 = r4 * r2;
 
     // Radial distortion correction
     float radial_distortion = 1.0 + uniforms.k1 * r2 + uniforms.k2 * r4 + uniforms.k3 * r6;
     float radial_distortion_denom = 1.0 + uniforms.k4 * r2 + uniforms.k5 * r4 + uniforms.k6 * r6;
     float radial_factor = radial_distortion / radial_distortion_denom;
 
-    // Tangential distortion correction    
-    float tangential_x = 2.0 * uniforms.p1 * x * y + uniforms.p2 * (r2 + 2.0 * x * x);    
-    float tangential_y = 2.0 * uniforms.p2 * x * y + uniforms.p1 * (r2 + 2.0 * y * y);   
+    // Tangential distortion correction
+    float tangential_x = 2.0 * uniforms.p1 * x * y + uniforms.p2 * (r2 + 2.0 * x * x);
+    float tangential_y = 2.0 * uniforms.p2 * x * y + uniforms.p1 * (r2 + 2.0 * y * y);
 
-    // Apply corrections    
+    // Apply corrections
     vec2 undistorted_norm = vec2(
             x * radial_factor + tangential_x,
-            y * radial_factor + tangential_y);    
+            y * radial_factor + tangential_y);
             
     vec2 undistorted_uv = undistorted_norm * vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y) 
             + vec2(uniforms.cx /resolution.x, uniforms.cy / resolution.y);
     
-    // Trapezoid distortion    
-    vec2 center_uv = undistorted_uv - 0.5;        
-    float width_scale = mix(bottom_width_ratio, top_width_ratio, (center_uv.y + 0.5));    
-    float perspective_factor = 1.0 + perspective_strength * center_uv.y;      
+    // Trapezoid distortion
+    vec2 center_uv = undistorted_uv - 0.5;
+    float width_scale = mix(bottom_width_ratio, top_width_ratio, (center_uv.y + 0.5));
+    float perspective_factor = 1.0 + perspective_strength * center_uv.y;
 
     vec2 corrected_uv = vec2(
-            (center_uv.x / width_scale) / perspective_factor,        
-            center_uv.y / perspective_factor);        
+            (center_uv.x / width_scale) / perspective_factor,
+            center_uv.y / perspective_factor);
     
     return corrected_uv + 0.5;
 }
@@ -193,8 +201,6 @@ void main() {
     // Convert undistorted uv back to pixel coordinates for sampling
     ivec2 undistorted_coords = ivec2(undistorted_uv * vec2(texture_size));
 
-    // Clamp to texture bounds    
-    undistorted_coords = clamp(undistorted_coords, ivec2(0), texture_size - 1);  
 
     // Apply bilateral filter
     float center_depth_filtered = bilateral_filter(undistorted_coords);
@@ -202,7 +208,7 @@ void main() {
     // Apply tilt correction    
     center_depth_filtered -= uv.y * 0.081;      
     
-    // Get previous frame depth    
+    // Get previous depth   
     float previous_depth = imageLoad(previous_frame, pixel_coords).r;        
     
     // Apply exponential smoothing   
@@ -214,11 +220,8 @@ void main() {
     float final_depth;
     if (is_edge) {
         final_depth = previous_depth;
-    } else if (center_depth_filtered_smoothed < min_depth) {
-        final_depth = max_depth;
-    } else {
-        final_depth = center_depth_filtered_smoothed;
     }
+    final_depth = clamp(center_depth_filtered_smoothed, min_depth, max_depth);
 
     if(uv.x < cut_box.x || uv.x > cut_box.y || uv.y < cut_box.z || uv.y > cut_box.w) {
         final_depth = max_depth;

@@ -67,6 +67,7 @@ func create_texture_from_image(image: Image, format: RenderingDevice.DataFormat)
 func process_image(input_image: Image, previous_frame: Image = null) -> Image:
 	# Make sure the input image is in FORMAT_RG8
 	if input_image.get_format() != Image.FORMAT_RG8:
+		print("wrong image format")
 		input_image.convert(Image.FORMAT_RG8)
 
 	var width = input_image.get_width()
@@ -130,8 +131,8 @@ func process_image(input_image: Image, previous_frame: Image = null) -> Image:
 	rd.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
 
 	# Calculate dispatch size - make sure to cover the entire image
-	var dispatch_x = (width + 7) / 8
-	var dispatch_y = (height + 7) / 8
+	var dispatch_x = (width + 7.0) / 8.0
+	var dispatch_y = (height + 7.0) / 8.0
 	rd.compute_list_dispatch(compute_list, dispatch_x, dispatch_y, 1)
 	rd.compute_list_end()
 
