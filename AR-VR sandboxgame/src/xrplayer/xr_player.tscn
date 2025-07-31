@@ -1,7 +1,8 @@
-[gd_scene load_steps=10 format=3 uid="uid://biomxbk85ryjy"]
+[gd_scene load_steps=13 format=3 uid="uid://biomxbk85ryjy"]
 
 [ext_resource type="PackedScene" uid="uid://b4kad2kuba1yn" path="res://addons/godot-xr-tools/hands/scenes/lowpoly/left_hand_low.tscn" id="1_rviqj"]
 [ext_resource type="PackedScene" uid="uid://l2n30mpbkdyw" path="res://addons/godot-xr-tools/hands/scenes/lowpoly/right_hand_low.tscn" id="2_6bycm"]
+[ext_resource type="PackedScene" uid="uid://b4ysuy43poobf" path="res://addons/godot-xr-tools/functions/function_pickup.tscn" id="2_8onup"]
 [ext_resource type="PackedScene" uid="uid://diyu06cw06syv" path="res://addons/godot-xr-tools/player/player_body.tscn" id="3_6bycm"]
 [ext_resource type="PackedScene" uid="uid://b6bk2pj8vbj28" path="res://addons/godot-xr-tools/functions/movement_turn.tscn" id="3_ivx6q"]
 [ext_resource type="Script" uid="uid://d01qqgqiuwria" path="res://src/foliage/place_obj.gd" id="4_842gf"]
@@ -14,7 +15,7 @@ flags = 0
 move_drag = 5.0
 move_traction = 30.0
 stop_on_slope = true
-move_max_slope = 85.0
+move_max_slope = 45.0
 jump_max_slope = 45.0
 jump_velocity = 3.0
 bounciness = 0.0
@@ -23,14 +24,25 @@ metadata/_custom_type_script = "uid://clkf843hewldi"
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_h46kc"]
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8onup"]
+albedo_color = Color(1, 0, 1, 1)
+
+[sub_resource type="PrismMesh" id="PrismMesh_fo6ue"]
+material = SubResource("StandardMaterial3D_8onup")
+size = Vector3(2, 2, 1)
+
 [node name="XRPlayer" type="XROrigin3D"]
 
 [node name="XRCamera3D" type="XRCamera3D" parent="."]
+cull_mask = 1048063
 
 [node name="LeftHandXRController3D" type="XRController3D" parent="."]
 tracker = &"left_hand"
 
-[node name="LeftHand5" parent="LeftHandXRController3D" instance=ExtResource("1_rviqj")]
+[node name="LeftHand" parent="LeftHandXRController3D" instance=ExtResource("1_rviqj")]
+
+[node name="FunctionPickup" parent="LeftHandXRController3D" instance=ExtResource("2_8onup")]
+grab_distance = 0.1
 
 [node name="RightHandXRController3D2" type="XRController3D" parent="."]
 tracker = &"right_hand"
@@ -42,14 +54,26 @@ tracker = &"right_hand"
 [node name="PlaceObj" type="Node" parent="RightHandXRController3D2"]
 script = ExtResource("4_842gf")
 
+[node name="FunctionPickup" parent="RightHandXRController3D2" instance=ExtResource("2_8onup")]
+grab_distance = 0.1
+
 [node name="PlayerBody" parent="." instance=ExtResource("3_6bycm")]
 collision_layer = 524289
 collision_mask = 1019
+floor_max_angle = 0.698132
 physics = SubResource("Resource_842gf")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="PlayerBody"]
 shape = SubResource("CapsuleShape3D_h46kc")
 
+[node name="MeshInstance3D" type="MeshInstance3D" parent="PlayerBody"]
+transform = Transform3D(1, 0, 0, 0, 1.19249e-08, 1, 0, -1, 1.19249e-08, 0, 1.89505, 0)
+layers = 512
+cast_shadow = 0
+mesh = SubResource("PrismMesh_fo6ue")
+skeleton = NodePath("../..")
+
 [node name="MovementJog" parent="." instance=ExtResource("6_ivx6q")]
 
+[connection signal="button_pressed" from="LeftHandXRController3D" to="RightHandXRController3D2/PlaceObj" method="_on_left_hand_xr_controller_3d_button_pressed"]
 [connection signal="button_pressed" from="RightHandXRController3D2" to="RightHandXRController3D2/PlaceObj" method="_on_right_hand_xr_controller_3d_2_button_pressed"]

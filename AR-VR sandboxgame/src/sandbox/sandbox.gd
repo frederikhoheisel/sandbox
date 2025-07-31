@@ -1,5 +1,7 @@
 extends AnimatableBody3D
 
+## Creates an 3D mesh with corresponding collision shape from the kinect.
+## Handles communicating the Kinect and starting the game.
 
 @export var image_conversion: Node
 
@@ -14,15 +16,14 @@ var heightmap_shape := HeightMapShape3D.new()
 
 var running := false
 var game_running: bool = false
-#var depth_texture : ImageTexture
 
 const WIDTH := 10.0
 const DEPTH := 9.0
 const PIXEL_WIDTH := 640
 const PIXEL_DEPTH := 576
 
-const SANDBOX_SCALE := 10.0
-var scale_factor: float = 8.0 # for downscaling the collision shape
+const SANDBOX_SCALE := 20.0
+var down_scale_factor: float = 8.0 # for downscaling the collision shape
 var thread: Thread
 
 var sandbox_rect: Rect2
@@ -39,17 +40,6 @@ func _ready() -> void:
 	%MeshInstance3D.mesh = mesh
 	%MeshInstance3D.scale *= SANDBOX_SCALE
 	
-	## no culling for the terrain mesh
-	## solved by increasing extra cull margin on %MeshInstance3D
-	# var id = %MeshInstance3D.get_instance_id()
-	# RenderingServer.instance_set_ignore_culling(id, true)
-	
-	## setup of the material and corresponding shader for the FilteredTexture
-	## directly done in the editor
-	#var filter_shader := load("res://texture_filter.gdshader")
-	#var filter_material := ShaderMaterial.new()
-	#filter_material.shader = filter_shader
-	
 	## setup of the material and corresponding shader for the terrain
 	var terrain_shader := load("res://src/sandbox/terrain.gdshader")
 	var terrain_material := ShaderMaterial.new()
@@ -62,7 +52,7 @@ func _ready() -> void:
 	collision_shape.shape = heightmap_shape
 	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
 	collision_shape.scale *= SANDBOX_SCALE
-	collision_shape.scale *= Vector3(scale_factor, 1.0, scale_factor)
+	collision_shape.scale *= Vector3(down_scale_factor, 1.0, down_scale_factor)
 	
 	## enable or disable the color image in the shader
 	mesh.material.set("shader_parameter/use_real_colors", use_color_image)
@@ -94,32 +84,28 @@ func _ready() -> void:
 	## initialise thred
 	thread = Thread.new()
 
+## moves the sandbox so the center is positioned 5 meters below the VR user
 func adjust_position_of_sandbox() -> void:
 	depth_test_ray_cast_3d.force_raycast_update()
 	var depth = depth_test_ray_cast_3d.get_collision_point().y
 	#print(depth)
 	self.position.y = -5.0 - depth
 
-## filters a texture with a shader and returns it
-#var previous_depth_texture: Texture2D = null # frame buffer
-#func filter_texture(texture: Texture2D) -> Texture2D:
-	#filtered_texture.texture = texture
-	##filtered_texture.material.set("shader_parameter/depth_texture", texture)
-	#filtered_texture.material.set("shader_parameter/previous_frame", previous_depth_texture)
-	#%SubViewport.render_target_update_mode = SubViewport.UPDATE_ONCE
-	#await get_tree().process_frame
-	#var new_texture = %SubViewport.get_texture()
-	#previous_depth_texture = new_texture
-	#return new_texture
 
-## converts texture to image and applies it to the heightmapshape
+## downsamples the filtered depth image and applies it to the heightmapshape to update the collision shape
 func set_heightmap(image: Image) -> void:
 	var heightmap_image = image.duplicate()
-	heightmap_image.resize(image.get_width() / scale_factor, image.get_height() / scale_factor, Image.INTERPOLATE_BILINEAR)
+	# the actual resizing
+	heightmap_image.resize(
+			image.get_width() / down_scale_factor,
+			image.get_height() / down_scale_factor, 
+			Image.INTERPOLATE_BILINEAR)
 	heightmap_shape.update_map_data_from_image(heightmap_image, 0.0, 1.0)
 	#printt(heightmap_shape.get_max_height(), heightmap_shape.get_min_height())
 
 ## helper function to adjust the color image and fit it to the depth data
+## it can only be used when the kinect streams color images as well
+## currently not working
 var color_img_scale: Vector2 = Vector2(0.455, 0.791)
 var color_img_offset: Vector2 = Vector2(-0.017, 0.016)
 func fit_color_image() -> void:
@@ -151,10 +137,12 @@ func fit_color_image() -> void:
 		color_img_offset.y -= 0.001
 		print("offset_x_down to " + str(color_img_offset.y))
 	
+	# apply the changed values to the shader
 	%MeshInstance3D.material_override.set("shader_parameter/color_scale", color_img_scale)
 	%MeshInstance3D.material_override.set("shader_parameter/color_offset", color_img_offset)
 
-## helper function to adjust the edges of the sandbox
+## helper function to adjust the edges of the sandbox which are cut off
+## currently not working
 var cut_box: Vector4 = Vector4(0.097, 0.881, 0.196, 0.753) # for cutting the edges (left, right, top, bottom)
 func set_cut_box() -> void:
 	# left
@@ -186,33 +174,40 @@ func set_cut_box() -> void:
 		cut_box.w -= 0.001
 		print("cut_bottom_down to " + str(cut_box))
 
-
+## function is called every physics frame
 var recording: bool = false
 func _physics_process(_delta: float) -> void:
-	# fit_color_image()
-	# set_cut_box()
+	# play a recording (has to be in filesystem) (key is currently "r")
 	if Input.is_action_just_pressed("get_recording"):
 		get_recording()
 		recording = not recording
 		print("toggle recording to: " + str(recording))
+	# start/ stop the terrain updates and game by pressing space
 	if Input.is_action_just_pressed("take_image"):
 		if !recording:
 			running = not running
 			print("toggle running to: " + str(running))
 			if !thread.is_started():
 				if not game_running:
+					# starts the marker placement
+					# once a marker is placed, they recursively call the placement of another
+					# -> cant be stopped
 					$"../Game".place_objective()
 					game_running = true
+				# start continuous terrain updates
 				thread.start(update_sandbox)
 			else:
+				# stop the terrain updates
 				thread.wait_to_finish()
 		else:
 			play_recording()
 
+## take a single depth image and stoe it in the filesystem
 func take_image() -> void:
 	var img = kinect.get_depth_texture_rf().get_image()
 	img.save_png("res://img.png")
 
+## get an array of depth images from a file in: "recordings/output.mkv"
 var recording_images: Array
 func get_recording() -> void:
 	recording_images = kinect.playback_mkv("recordings/output.mkv")
@@ -221,13 +216,15 @@ func get_recording() -> void:
 	else:
 		print("Failed to extract images.")
 
+## plays the recording
+## requires get_recording() to be previously called
 func play_recording() -> void:
 	if recording_images.size() <= 0:
 		print("unable to play, images are empty")
 	for frame : Dictionary in recording_images:
 		var depth = frame["depth"]
 		var depth_image_rf = image_conversion.process_image(depth)
-		var depth_texture = ImageTexture.create_from_image(depth_image_rf)
+		var _depth_texture = ImageTexture.create_from_image(depth_image_rf)
 		#$"../Sprite3D2".texture = depth_texture # only for debugging
 		if frame.get("color") != null:
 			var color = frame["color"]
@@ -238,37 +235,41 @@ func play_recording() -> void:
 		await get_tree().create_timer(.1).timeout
 
 ## is in thread
+## continuously updates the sandbox terrain
 func update_sandbox() -> void:
 	while running:
-		OS.delay_msec(33)
-		var image_rg8
+		var image_rg8 # either only depth image or both depth and color image
 		if use_color_image:
 			image_rg8 = kinect.get_depth_and_color_image_rg8()
 			#call_deferred("finish_update", image_rg8)
 		else:
 			image_rg8 = kinect.get_depth_image_rg8()
+			## deferred because thread cant make changes to resources 
 			call_deferred("finish_update_depth", image_rg8)
 
-var i: int = 0
-var prev_image: Image = null
+## actual environment update logic
+## applies chenges of one new depth image
+var prev_image: Image = null # texture buffer used for exponential smoothing
 func finish_update_depth(depth_image_rg8) -> void:
 	if depth_image_rg8 != null:
-		#var image_rf = depth_image_rg8.convert(Image.FORMAT_RF)
+		# convert the depth image to format rf and apply the compute shader on it
 		var image_rf = image_conversion.process_image(depth_image_rg8, prev_image)
+		
+		# store the filtered image for the next pass
 		prev_image = image_rf
+		
+		# create texture with the filtered image
 		var texture = ImageTexture.create_from_image(image_rf)
-		#var modified_texture = await filter_texture.filter_texture(texture)
+		
+		# pass texture to terrain mesh for vertice displacement, normal calculation and fragment coloring
 		mesh.material.set("shader_parameter/depth_texture", texture)
-		i += 1
-		if i % 5 == 0:
-			set_heightmap(image_rf)
-			i = 0
-		#(0.097, 0.881, 0.196, 0.753) (left, right, top, bottom)
-		#var cut_image = modified_texture.get_image().get_region(sandbox_rect)
-		#var cut_texture = ImageTexture.create_from_image(cut_image)
-		#%ProjectorWindow.cut_depth_texture = cut_texture
-		$"../Sprite3D2".texture = ImageTexture.create_from_image(prev_image)
-		$"../Sprite3D".texture = texture
+		
+		# use the filtered depth image to change the collision shape
+		set_heightmap(image_rf)
+		
+		# sprites for debugging
+		#$"../Sprite3D2".texture = ImageTexture.create_from_image(prev_image)
+		#$"../Sprite3D".texture = ImageTexture.create_from_image(depth_image_rg8)
 
 ## stop the thread and close the kinect when exiting
 func _notification(what):
@@ -280,7 +281,7 @@ func _notification(what):
 			thread.wait_to_finish()
 		%ProjectorWindow.print_cam_params()
 
-
+## catch the VR player when he falls through the ground and resets his vertical position
 func _on_fall_throughprotection_body_entered(body: Node3D) -> void:
 	if body is XRToolsPlayerBody:
 		body.get_parent().global_position.y = 0.0

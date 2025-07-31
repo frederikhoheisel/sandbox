@@ -13,7 +13,7 @@ layout(set = 0, binding = 1, r32f) uniform readonly image2D previous_frame;
 // Output texture (FORMAT_RF) - binding 2
 layout(set = 0, binding = 2, r32f) uniform writeonly image2D output_texture;
 
-/*DISTORTION CORRECTION PARAMETERS as uniform buffer*/
+// DISTORTION CORRECTION PARAMETERS as uniform buffer - binding 3
 layout(set = 0, binding = 3, std430) restrict readonly buffer UniformBuffer {
     // focal length
     float fx;
@@ -37,7 +37,7 @@ layout(set = 0, binding = 3, std430) restrict readonly buffer UniformBuffer {
 // bilateral filter
 const float sigma_spatial = 2.0;
 const float sigma_intensity = 0.05;
-const int kernel_size = 15;
+const int kernel_size = 9;
 
 // exponential filter
 const float alpha = 0.3;
@@ -63,7 +63,9 @@ const vec2 resolution = vec2(640.0, 576.0);
 vec2 undistort_pixel(vec2 distorted_uv) {
     // Brown–Conrady model distortion
     vec2 center_offset = vec2(uniforms.cx / resolution.x, uniforms.cy / resolution.y);
-    vec2 norm = (distorted_uv - center_offset) / vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y);
+    vec2 focal_scale = vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y);
+
+    vec2 norm = (distorted_uv - center_offset) / focal_scale;
     float x = norm.x;
     float y = norm.y;
     float r2 = x * x + y * y;
@@ -84,8 +86,7 @@ vec2 undistort_pixel(vec2 distorted_uv) {
             x * radial_factor + tangential_x,
             y * radial_factor + tangential_y);
             
-    vec2 undistorted_uv = undistorted_norm * vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y) 
-            + vec2(uniforms.cx /resolution.x, uniforms.cy / resolution.y);
+    vec2 undistorted_uv = undistorted_norm * focal_scale + center_offset;
     
     // Trapezoid distortion
     vec2 center_uv = undistorted_uv - 0.5;
@@ -102,20 +103,20 @@ vec2 undistort_pixel(vec2 distorted_uv) {
 /** 
 * gaussian distribution function 
 */
-float gaussian(float x, float sigma) {    
+float gaussian(float x, float sigma) {
     return exp(-(x * x) / (2.0 * sigma * sigma));
 }
 
 float bilateral_filter(ivec2 center_coords) {    
-    // Convert RG to depth for center pixel    
-    vec4 center_pixel = imageLoad(input_texture, center_coords);    
-    float center_depth = (center_pixel.r + center_pixel.g * 256.0) / (max_depth);     
+    // Convert RG to depth for center pixel
+    vec4 center_pixel = imageLoad(input_texture, center_coords);
+    float center_depth = (center_pixel.r + center_pixel.g * 256.0) / (max_depth);
 
     float filtered_depth = 0.0;
     float weight_sum = 0.0;
     
     int half_kernel = kernel_size / 2;
-    ivec2 texture_size = imageSize(input_texture);   
+    ivec2 texture_size = imageSize(input_texture);
     
     for (int i = -half_kernel; i <= half_kernel; i++) {
         for (int j = -half_kernel; j <= half_kernel; j++) {
@@ -181,15 +182,15 @@ bool edge_detection(ivec2 center_coords) {
 }
 
 void main() {
-    // Get the current pixel coordinates    
-    ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);        
+    // Get the current pixel coordinates
+    ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-    // Get dimensions of the input texture    
-    ivec2 texture_size = imageSize(input_texture);        
+    // Get dimensions of the input texture
+    ivec2 texture_size = imageSize(input_texture);
 
-    // Check if the pixel is within the texture bounds    
-    if(pixel_coords.x >= texture_size.x || pixel_coords.y >= texture_size.y) {        
-        return;    
+    // Check if the pixel is within the texture bounds
+    if(pixel_coords.x >= texture_size.x || pixel_coords.y >= texture_size.y) {
+        return;
     }
 
     // Convert pixel coordinates to uv coordinates
@@ -200,29 +201,34 @@ void main() {
 
     // Convert undistorted uv back to pixel coordinates for sampling
     ivec2 undistorted_coords = ivec2(undistorted_uv * vec2(texture_size));
+    // ivec2 undistorted_coords = ivec2(uv * vec2(texture_size));
 
 
     // Apply bilateral filter
     float center_depth_filtered = bilateral_filter(undistorted_coords);
 
+    // vec4 center_pixel = imageLoad(input_texture, undistorted_coords);
+    // float center_depth_filtered = (center_pixel.r + center_pixel.g * 256.0) / (max_depth);
+
     // Apply tilt correction    
-    center_depth_filtered -= uv.y * 0.081;      
+    center_depth_filtered -= uv.y * 0.081;
     
-    // Get previous depth   
-    float previous_depth = imageLoad(previous_frame, pixel_coords).r;        
+    // Get previous depth
+    float previous_depth = imageLoad(previous_frame, pixel_coords).r;
     
-    // Apply exponential smoothing   
-    float center_depth_filtered_smoothed = exponential_smooth(center_depth_filtered, previous_depth);        
+    // Apply exponential smoothing
+    float center_depth_filtered_smoothed = exponential_smooth(center_depth_filtered, previous_depth);
     
     bool is_edge = edge_detection(undistorted_coords);
 
-    // Apply edge detection and depth filtering logic
+    // Apply edge detection and calamp depth
     float final_depth;
     if (is_edge) {
         final_depth = previous_depth;
     }
     final_depth = clamp(center_depth_filtered_smoothed, min_depth, max_depth);
 
+    // cut of edges
     if(uv.x < cut_box.x || uv.x > cut_box.y || uv.y < cut_box.z || uv.y > cut_box.w) {
         final_depth = max_depth;
     }

@@ -26,21 +26,21 @@ public:
     Kinect();
     ~Kinect();
 
-    static void kinect_log_callback(void *context, k4a_log_level_t level, const char *file, const int line, const char *message);
-    Array extract_camera_parameters(bool print);
-    bool initialize_kinect(int device_index = 0);
-    void close_kinect();
-    bool start_cameras();
-    bool stop_cameras();
-    int get_connected_device_count();
-    Ref<Image> get_depth_image_rf();
-    Ref<Image> get_depth_image_rg8();
-    Array get_depth_and_color_image_rg8();
-    Ref<ImageTexture> Kinect::get_depth_texture_rg8();
-    Ref<ImageTexture> Kinect::get_depth_texture_rf();
-    Ref<ImageTexture> Kinect::get_placeholder_texture();
-    Array playback_mkv(const String &file_path);
-    void Kinect::undistort_depth_image(k4a_calibration_t &camera_calibration, k4a_image_t depth_image, Ref<Image> &undistorted_image);
+    static void kinect_log_callback(void *context, k4a_log_level_t level, const char *file, const int line, const char *message); // function to pass log messages
+    Array extract_camera_parameters(bool print); // get the brown-conrady parameters from the connected kinect (also prints them in nice format if specified)
+    bool initialize_kinect(int device_index = 0); // connect to the specified kinect
+    void close_kinect(); // disconnect from the kinect
+    bool start_cameras(); // start cameras of the kinect
+    bool stop_cameras(); // stop cameras of the kinect
+    int get_connected_device_count(); // name of function is self explainatory
+    Ref<Image> get_depth_image_rf(); // get one Godot Image from the kinect in format FORMAT_RF
+    Ref<Image> get_depth_image_rg8(); // get one Godot Image from the kinect in format FORMAT_RG8
+    Array get_depth_and_color_image_rg8(); // get an Array containing both a depth and color image (depth image in format FORMAT_RG8)
+    Ref<ImageTexture> Kinect::get_depth_texture_rg8(); // get one Godot Texture from the kinect in format FORMAT_RG8
+    Ref<ImageTexture> Kinect::get_depth_texture_rf(); // get one Godot Texture from the kinect in format FORMAT_RF
+    Ref<ImageTexture> Kinect::get_placeholder_texture(); // get one placeholder Godot Texture from the kinect in format FORMAT_RG8 (for testinng)
+    Array playback_mkv(const String &file_path); // get one Godot Texture from the kinect in format FORMAT_RG8
+    void Kinect::undistort_depth_image(k4a_calibration_t &camera_calibration, k4a_image_t depth_image, Ref<Image> &undistorted_image); // for undistortion testing (not functional)
 };
 
 }
