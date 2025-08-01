@@ -279,7 +279,6 @@ func _notification(what):
 		get_tree().quit()
 		if thread.is_alive():
 			thread.wait_to_finish()
-		%ProjectorWindow.print_cam_params()
 
 ## catch the VR player when he falls through the ground and resets his vertical position
 func _on_fall_throughprotection_body_entered(body: Node3D) -> void:

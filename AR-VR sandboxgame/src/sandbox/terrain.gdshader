@@ -1,7 +1,7 @@
 shader_type spatial;
 
 uniform sampler2D depth_texture; // The depth texture
-uniform bool use_real_colors = false;
+uniform bool use_real_colors = false; // if the kinect provides
 uniform float height_scale = 10.0; // Scale factor
 
 uniform float min_depth = 0.5;

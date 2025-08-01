@@ -38,7 +38,7 @@ enabled=PackedStringArray("res://addons/godot-xr-tools/plugin.cfg")
 [file_customization]
 
 folder_colors={
-"res://assets/GLTF format/": "green"
+"res://assets/environment_models/": "green"
 }
 
 [filesystem]

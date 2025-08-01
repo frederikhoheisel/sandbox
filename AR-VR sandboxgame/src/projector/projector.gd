@@ -1,6 +1,7 @@
 extends Window
 
-@onready var sprite_2d: Sprite2D = $Sprite2D
+## Creates a window on the second screen for the projection on the sand surface
+
 @export var enable_projector: bool
 
 @onready var camera_3d: Camera3D = $SubViewport/Camera3D
@@ -17,6 +18,7 @@ var sandbox_width: float
 var sandbox_height: float
 
 func _ready() -> void:
+	_transform_projector_camera()
 	if not enable_projector:
 		self.queue_free()
 	sandbox_width = abs(sandbox_pos[0]) + abs(sandbox_pos[1])
@@ -26,6 +28,8 @@ func _ready() -> void:
 	#$"../MeshInstance3D".position = Vector3(sandbox_center.x, -10.0, sandbox_center.y)
 	#$"../MeshInstance3D".mesh.size = Vector3(sandbox_width, 1.0, sandbox_height)
 
+
+## depricated
 var tex_scale = Vector2(3.15, 3.52)
 var tex_pos = Vector2(153.0, -48.0)
 func scale_terrain_texture() -> void:
@@ -65,19 +69,6 @@ func scale_terrain_texture() -> void:
 		print(tex_pos)
 	$TerrainSprite2D.position = tex_pos
 
-func _process(_delta: float) -> void:
-	pass
-	#var track_pos_2d = Vector2(track_obj.position.x, track_obj.position.z) * Vector2(0.85, 0.95) + sandbox_size / 2.0
-	#var track_pos_2d_normalized = track_pos_2d / sandbox_size * Vector2(1920.0, 1080.0)
-	#sprite_2d.position = track_pos_2d_normalized + Vector2(0.0, 50.0)
-	#sprite_2d.rotation = -track_obj.rotation.y
-
-func _physics_process(_delta: float) -> void:
-	#$TerrainSprite2D.texture = cut_depth_texture
-	#scale_terrain_texture()
-	#print(sprite_2d.position)
-	#print(str(track_obj.position.x) + "  " + str(track_obj.position.z))
-	_transform_projector_camera()
 
 var fov_size: float = 52.0 * 2.0
 var pos: Vector3 = Vector3(0.0, 32.0, -2.6)

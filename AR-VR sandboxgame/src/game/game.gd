@@ -1,5 +1,7 @@
 extends Node
 
+## Handles the game logic of spawning dig spots on the sandbox surface.
+
 @onready var objective_container: Node3D = $ObjectiveContainer
 @onready var depth_test_ray_cast_3d: RayCast3D = $DepthTestRayCast3D
 
@@ -13,7 +15,7 @@ func _process(delta: float) -> void:
 
 func  _get_diggable_pos() -> Vector3:
 	while true:
-		# magic numbers yay!
+		# magic numbers yay! 
 		var try_pos = Vector3(randf_range(-38.3, 36.05), 10.0, randf_range(-25.2, 20.75)) * 2.0
 		#var try_pos = Vector3(0.0, 10.0, 0.0)
 		depth_test_ray_cast_3d.position = try_pos
@@ -31,6 +33,7 @@ func place_objective() -> void:
 	dig_spot_scene.position = pos
 	dig_spot_scene.snap_to_ground()
 	dig_spot_scene.tree_planted.connect(place_objective)
+
 
 func spawn_tree() -> void:
 	var tree_scene = tree.instantiate()
