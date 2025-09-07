@@ -75,7 +75,7 @@ func _ready() -> void:
 		
 		# extract the camera intrinsics and apply them to the shader
 		# currently broken
-		#var depth_params: Array = kinect.extract_camera_parameters(false)
+		var depth_params: Array = kinect.extract_camera_parameters(false)
 		#if not depth_params.is_empty():
 			#filter_texture.set_lens_distortion_params(depth_params)
 	
@@ -102,6 +102,7 @@ func set_heightmap(image: Image) -> void:
 			Image.INTERPOLATE_BILINEAR)
 	heightmap_shape.update_map_data_from_image(heightmap_image, 0.0, 1.0)
 	#printt(heightmap_shape.get_max_height(), heightmap_shape.get_min_height())
+
 
 ## helper function to adjust the color image and fit it to the depth data
 ## it can only be used when the kinect streams color images as well
@@ -141,6 +142,7 @@ func fit_color_image() -> void:
 	%MeshInstance3D.material_override.set("shader_parameter/color_scale", color_img_scale)
 	%MeshInstance3D.material_override.set("shader_parameter/color_offset", color_img_offset)
 
+
 ## helper function to adjust the edges of the sandbox which are cut off
 ## currently not working
 var cut_box: Vector4 = Vector4(0.097, 0.881, 0.196, 0.753) # for cutting the edges (left, right, top, bottom)
@@ -174,9 +176,11 @@ func set_cut_box() -> void:
 		cut_box.w -= 0.001
 		print("cut_bottom_down to " + str(cut_box))
 
+
 ## function is called every physics frame
 var recording: bool = false
 func _physics_process(_delta: float) -> void:
+	#_sample_fps() 		# sample fps to detect performance issues and restart kinect
 	# play a recording (has to be in filesystem) (key is currently "r")
 	if Input.is_action_just_pressed("get_recording"):
 		get_recording()
@@ -191,8 +195,8 @@ func _physics_process(_delta: float) -> void:
 				if not game_running:
 					# starts the marker placement
 					# once a marker is placed, they recursively call the placement of another
-					# -> cant be stopped
-					$"../Game".place_objective()
+					# -> cant be stopped (yet)
+					#$"../Game".place_objective()
 					game_running = true
 				# start continuous terrain updates
 				thread.start(update_sandbox)
@@ -202,10 +206,12 @@ func _physics_process(_delta: float) -> void:
 		else:
 			play_recording()
 
+
 ## take a single depth image and stoe it in the filesystem
 func take_image() -> void:
 	var img = kinect.get_depth_texture_rf().get_image()
 	img.save_png("res://img.png")
+
 
 ## get an array of depth images from a file in: "recordings/output.mkv"
 var recording_images: Array
@@ -215,6 +221,7 @@ func get_recording() -> void:
 		print("Successfully extracted images.")
 	else:
 		print("Failed to extract images.")
+
 
 ## plays the recording
 ## requires get_recording() to be previously called
@@ -234,6 +241,7 @@ func play_recording() -> void:
 		#finish_update(depth_texture)
 		await get_tree().create_timer(.1).timeout
 
+
 ## is in thread
 ## continuously updates the sandbox terrain
 func update_sandbox() -> void:
@@ -244,8 +252,9 @@ func update_sandbox() -> void:
 			#call_deferred("finish_update", image_rg8)
 		else:
 			image_rg8 = kinect.get_depth_image_rg8()
-			## deferred because thread cant make changes to resources 
+			## deferred because thread can't make changes to resources 
 			call_deferred("finish_update_depth", image_rg8)
+
 
 ## actual environment update logic
 ## applies chenges of one new depth image
@@ -271,6 +280,7 @@ func finish_update_depth(depth_image_rg8) -> void:
 		#$"../Sprite3D2".texture = ImageTexture.create_from_image(prev_image)
 		#$"../Sprite3D".texture = ImageTexture.create_from_image(depth_image_rg8)
 
+
 ## stop the thread and close the kinect when exiting
 func _notification(what):
 	if what == NOTIFICATION_WM_CLOSE_REQUEST:
@@ -280,7 +290,45 @@ func _notification(what):
 		if thread.is_alive():
 			thread.wait_to_finish()
 
+
 ## catch the VR player when he falls through the ground and resets his vertical position
 func _on_fall_throughprotection_body_entered(body: Node3D) -> void:
 	if body is XRToolsPlayerBody:
 		body.get_parent().global_position.y = 0.0
+
+
+var fps_samples: Array[float] = []
+var sample_size: int = 50
+var fps_threshold: float = 10.0
+func _sample_fps() -> void:
+	var current_fps = Engine.get_frames_per_second()
+
+	fps_samples.append(current_fps)
+	if fps_samples.size() > sample_size:
+		fps_samples.pop_front()
+	if fps_samples.size() >= sample_size:
+		var avg_fps = _calculate_average(fps_samples)
+		if avg_fps < fps_threshold:
+			push_error("[PERFORMANCE] Low FPS detected: ", avg_fps)
+			print("[PERFORMANCE] Low FPS detected: ", avg_fps)
+			# Trigger kinect restart
+			_restart_kinect()
+			fps_samples.clear()  # Reset after restart
+
+
+func _restart_kinect() -> void:
+	running = false
+	thread.wait_to_finish()
+	kinect.close_kinect()
+	await get_tree().create_timer(1.0).timeout
+	kinect.initialize_kinect(0)
+	kinect.start_cameras()
+	thread.start(update_sandbox)
+	running = true
+
+
+func _calculate_average(array: Array[float]) -> float:
+	var sum = 0.0
+	for value in array:
+		sum += value
+	return sum / array.size()

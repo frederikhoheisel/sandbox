@@ -22,6 +22,7 @@ XRToolsRumbleManager="*res://addons/godot-xr-tools/rumble/rumble_manager.gd"
 
 [display]
 
+window/size/always_on_top=true
 window/subwindows/embed_subwindows=false
 window/stretch/mode="viewport"
 window/stretch/aspect="expand"
@@ -251,10 +252,6 @@ place_tree={
 
 common/physics_ticks_per_second=30
 common/enable_object_picking=false
-
-[rendering]
-
-renderer/rendering_method="mobile"
 
 [xr]
 

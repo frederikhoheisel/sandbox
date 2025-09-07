@@ -16,9 +16,13 @@ uniform vec2 color_scale = vec2(0.455, 0.791);
 uniform vec2 color_offset = vec2(-0.017, 0.016);
 uniform float aspect_correction : hint_range(0.5, 2.0) = 1.0;
 
-uniform vec3 shallow_color: source_color = vec3(0.0, 0.0, 1.0); // blue for low areas
-uniform vec3 mid_color: source_color = vec3(0.0, 1.0, 0.0); // green for mid-range
-uniform vec3 high_color: source_color = vec3(1.0, 0.0, 0.0); // red for peaks
+uniform vec3 shallow_color: source_color = vec3(0.0, 0.0, 1.0); // for low areas
+uniform vec3 mid_color: source_color = vec3(0.0, 1.0, 0.0); // for mid-range
+uniform vec3 high_color: source_color = vec3(1.0, 0.0, 0.0); // for peaks
+
+uniform bool show_normals = false;
+uniform bool WorldSpace = true; // toggle between world and local space
+uniform bool RemapRange = true; // remap from -1..1 to 0..1
 
 void vertex() {
 	float depth = texture(depth_texture, UV).r * height_scale;
@@ -26,16 +30,17 @@ void vertex() {
 
 	vec2 texel_size = 1.0 / vec2(textureSize(depth_texture, 0));
 
-	float up = texture(depth_texture, UV + texel_size * vec2(0.0, 1.0)).r;
-	float right = texture(depth_texture, UV + texel_size * vec2(1.0, 0.0)).r;
-	float left = texture(depth_texture, UV + texel_size * vec2(-1.0, 0.0)).r;
-	float down = texture(depth_texture, UV + texel_size * vec2(0.0, -1.0)).r;
+	float up = texture(depth_texture, UV + texel_size * vec2(0.0, 1.0)).r * height_scale;
+	float right = texture(depth_texture, UV + texel_size * vec2(1.0, 0.0)).r * height_scale;
+	float left = texture(depth_texture, UV + texel_size * vec2(-1.0, 0.0)).r * height_scale;
+	float down = texture(depth_texture, UV + texel_size * vec2(0.0, -1.0)).r * height_scale;
 
-	vec3 a = vec3(2.0 * texel_size.x, 0.0, right - left);
-	vec3 b = vec3( 0.0, 2.0 * texel_size.y, up - down);
-
+	//vec3 a = vec3(2.0 * texel_size.x, 0.0, right - left);
+	//vec3 b = vec3( 0.0, 2.0 * texel_size.y, up - down);
+	vec3 a = vec3(2.0 * texel_size.x, -(right - left), 0.0);  // Negate height difference
+	vec3 b = vec3(0.0, -(up - down), 2.0 * texel_size.y); 
 	//vec3 a = vec3(2.0 * texel_size.x, right - left, 0.0);
-	//vec3 b = vec3( 0.0, up - down, 2.0 * texel_size.y);
+	//vec3 b = vec3(0.0, up - down, 2.0 * texel_size.y);
 
 	NORMAL = -normalize(cross(a, b));
 }
@@ -79,25 +84,36 @@ void fragment() {
 			ALBEDO = vec3(0.0, 0.0, 0.0);
 		}
 	} else {
-		float depth = texture(depth_texture, UV).r;
-		float normalized_height = 1.0 - clamp((depth - min_depth) / (max_depth - min_depth), 0.0, 1.0);
-
-		vec3 color;
-		if(normalized_height < 0.5) {
-			// Interpolate between mid and high colors for upper half
-			color = mix(shallow_color, mid_color, normalized_height * 2.0);
+		if (show_normals) {
+			// World space normal
+			vec4 Wn = INV_VIEW_MATRIX * vec4( NORMAL, 0.0 );
+			if ( WorldSpace == false ) {
+				Wn = inverse( MODEL_MATRIX ) * Wn;
+			} if ( RemapRange == true ) {
+				ALBEDO = ( Wn.rgb + 1.0 )/2.0;
+			} else {
+				ALBEDO = Wn.rgb;
+			}
 		} else {
-			// Interpolate between shallow and mid colors for lower half
-			color = mix(mid_color, high_color, (normalized_height - 0.5) * 2.0);
+			float depth = texture(depth_texture, UV).r;
+			float normalized_height = 1.0 - clamp((depth - min_depth) / (max_depth - min_depth), 0.0, 1.0);
+
+			vec3 color;
+			if(normalized_height < 0.5) {
+				// Interpolate between mid and high colors for upper half
+				color = mix(shallow_color, mid_color, normalized_height * 2.0);
+			} else {
+				// Interpolate between shallow and mid colors for lower half
+				color = mix(mid_color, high_color, (normalized_height - 0.5) * 2.0);
+			}
+
+			// Apply the color
+			ALBEDO = color;
+
+			// Add some material properties based on height
+			ROUGHNESS = 0.3 + normalized_height * 0.4; // Higher areas are less rough
+			METALLIC = normalized_height * 0.2; // Higher areas have slight metallic sheen
+			SPECULAR = normalized_height * 0.5; // speculars for high areas
 		}
-
-		// Apply the color
-		ALBEDO = color;
-
-		// Add some material properties based on height
-		//ROUGHNESS = 0.3 + normalized_height * 0.4; // Higher areas are less rough
-		//METALLIC = normalized_height * 0.2; // Higher areas have slight metallic sheen
-//
-		//SPECULAR = normalized_height * 0.5;
 	}
 }

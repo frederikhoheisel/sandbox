@@ -40,7 +40,7 @@ const float sigma_intensity = 0.05;
 const int kernel_size = 9;
 
 // exponential filter
-const float alpha = 0.3;
+const float alpha = 0.1;
 
 const float min_depth = 0.45;
 const float max_depth = 9.0;
@@ -62,6 +62,7 @@ const vec2 resolution = vec2(640.0, 576.0);
 */
 vec2 undistort_pixel(vec2 distorted_uv) {
     // Brown–Conrady model distortion
+    // vec2 center_offset = vec2(0.5, 0.5);
     vec2 center_offset = vec2(uniforms.cx / resolution.x, uniforms.cy / resolution.y);
     vec2 focal_scale = vec2(uniforms.fx / resolution.x, uniforms.fy / resolution.y);
 
@@ -75,6 +76,8 @@ vec2 undistort_pixel(vec2 distorted_uv) {
     // Radial distortion correction
     float radial_distortion = 1.0 + uniforms.k1 * r2 + uniforms.k2 * r4 + uniforms.k3 * r6;
     float radial_distortion_denom = 1.0 + uniforms.k4 * r2 + uniforms.k5 * r4 + uniforms.k6 * r6;
+
+    // radial_distortion_denom = max(radial_distortion_denom, 1e-6);
     float radial_factor = radial_distortion / radial_distortion_denom;
 
     // Tangential distortion correction
@@ -87,11 +90,15 @@ vec2 undistort_pixel(vec2 distorted_uv) {
             y * radial_factor + tangential_y);
             
     vec2 undistorted_uv = undistorted_norm * focal_scale + center_offset;
+    return undistorted_uv;
     
     // Trapezoid distortion
     vec2 center_uv = undistorted_uv - 0.5;
     float width_scale = mix(bottom_width_ratio, top_width_ratio, (center_uv.y + 0.5));
+    //width_scale = max(abs(width_scale), 1e-6) * sign(width_scale);
+    
     float perspective_factor = 1.0 + perspective_strength * center_uv.y;
+    perspective_factor = max(abs(perspective_factor), 1e-6) * sign(perspective_factor);
 
     vec2 corrected_uv = vec2(
             (center_uv.x / width_scale) / perspective_factor,
@@ -210,7 +217,7 @@ void main() {
     // vec4 center_pixel = imageLoad(input_texture, undistorted_coords);
     // float center_depth_filtered = (center_pixel.r + center_pixel.g * 256.0) / (max_depth);
 
-    // Apply tilt correction    
+    // Apply tilt correction
     center_depth_filtered -= uv.y * 0.081;
     
     // Get previous depth

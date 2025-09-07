@@ -9,6 +9,7 @@
 
 using namespace godot;
 
+// bind the methods of this class to 
 void Kinect::_bind_methods() {
     ClassDB::bind_method(D_METHOD("initialize_kinect", "device_index"), &Kinect::initialize_kinect);
     ClassDB::bind_method(D_METHOD("extract_camera_parameters"), &Kinect::extract_camera_parameters);
@@ -34,6 +35,7 @@ Kinect::~Kinect() {
     close_kinect(); // Ensure the Kinect device is closed
 }
 
+// function to pass log messages to the Godot Engine
 void Kinect::kinect_log_callback(void *context, k4a_log_level_t level, const char *file, const int line, const char *message) {
     UtilityFunctions::print(String("[Kinect SDK] {0}:{1} - {2}").format(Array::make(file, line, message)));
 }
@@ -65,7 +67,7 @@ bool Kinect::initialize_kinect(int device_index) {
     return false;
 }
 
-// function to print camera parameters for use in shader to counter distortion
+// function to return to print camera parameters for use in shader to counter distortion
 Array Kinect::extract_camera_parameters(bool print) {
     k4a_calibration_t calibration;
     Array depth_params_array;
@@ -240,18 +242,21 @@ Ref<ImageTexture> Kinect::get_depth_texture_rf() {
     return depth_texture;
 }
 
+// get one Godot Image from the kinect in format FORMAT_RG8
 Ref<Image> Kinect::get_depth_image_rg8() {
     if (kinect_device == nullptr) {
         UtilityFunctions::print("Kinect device is not initialized.");
         return nullptr;
     }
 
+    // get a capture from the Kinect
     k4a_capture_t capture = nullptr;
     if (k4a_device_get_capture(kinect_device, &capture, 1000) != K4A_WAIT_RESULT_SUCCEEDED) {
         UtilityFunctions::print("Failed to capture frame.");
         return nullptr;
     }
 
+    // get the depth image from the capture
     k4a_image_t depth_image = k4a_capture_get_depth_image(capture);
     if (depth_image == nullptr) {
         UtilityFunctions::print("Failed to get depth image.");
@@ -259,13 +264,17 @@ Ref<Image> Kinect::get_depth_image_rg8() {
         return nullptr;
     }
 
+    // get the buffer location where the depth image is located
     uint16_t *buffer = reinterpret_cast<uint16_t *>(k4a_image_get_buffer(depth_image));
-    int width = k4a_image_get_width_pixels(depth_image);
-    int height = k4a_image_get_height_pixels(depth_image);
+    int width = k4a_image_get_width_pixels(depth_image); // width of depth image in pixels (640)
+    int height = k4a_image_get_height_pixels(depth_image); // height of depth image in pixels (576)
 
+    // create a Godot Image with the dimensions of the depth image and the format FORMAT_RG8 (8bit red channel + 8bit green channel)
     Ref<Image> depth = Image::create(width, height, false, Image::FORMAT_RG8);
+    // copy the buffer containing the depth image into the Godot Image
     memcpy(depth->ptrw(), buffer, width * height * sizeof(uint16_t));
     
+    // free memory of depth image and capture
     k4a_image_release(depth_image);
     k4a_capture_release(capture);
 

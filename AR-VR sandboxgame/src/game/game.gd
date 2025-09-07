@@ -8,10 +8,11 @@ extends Node
 var dig_spot: PackedScene = preload("res://src/game/dig_spot.tscn")
 var tree: PackedScene = preload("res://src/foliage/tree.tscn")
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	pass
 	#if Input.is_action_pressed("place_tree"):
 		#spawn_tree()
+
 
 func  _get_diggable_pos() -> Vector3:
 	while true:

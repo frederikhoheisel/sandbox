@@ -149,9 +149,11 @@ func process_image(input_image: Image, previous_frame: Image = null) -> Image:
 
 	# Clean up
 	rd.free_rid(input_texture_rid)
+	input_texture_rid = RID()
 	rd.free_rid(output_texture_rid)
-	#if uniform_set.is_valid():
-		#rd.free_rid(uniform_set)
+	output_texture_rid = RID()
+	rd.free_rid(previous_frame_texture)
+	previous_frame_texture = RID()
 
 	return output_image
 
