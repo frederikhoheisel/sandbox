@@ -33,18 +33,19 @@ var mesh: PlaneMesh
 func _ready() -> void:
 	sandbox_rect = Rect2(cut_box.x * PIXEL_WIDTH, cut_box.z * PIXEL_DEPTH, (cut_box.y - cut_box.x) * PIXEL_WIDTH, (cut_box.w - cut_box.z) * PIXEL_DEPTH)
 	## setup of the plane mesh
-	mesh = PlaneMesh.new()
-	mesh.size = Vector2(WIDTH, DEPTH)
-	mesh.subdivide_width = PIXEL_WIDTH
-	mesh.subdivide_depth = PIXEL_DEPTH
-	%MeshInstance3D.mesh = mesh
+	#mesh = PlaneMesh.new()
+	%MeshInstance3D.mesh.size = Vector2(WIDTH, DEPTH)
+	%MeshInstance3D.mesh.subdivide_width = PIXEL_WIDTH
+	%MeshInstance3D.mesh.subdivide_depth = PIXEL_DEPTH
+	#%MeshInstance3D.mesh = mesh
 	%MeshInstance3D.scale *= SANDBOX_SCALE
 	
 	## setup of the material and corresponding shader for the terrain
-	var terrain_shader := load("res://src/sandbox/terrain.gdshader")
-	var terrain_material := ShaderMaterial.new()
-	terrain_material.shader = terrain_shader
-	mesh.material = terrain_material
+	## done in editor to change uniforms
+	#var terrain_shader := load("res://src/sandbox/terrain.gdshader")
+	#var terrain_material := ShaderMaterial.new()
+	#terrain_material.shader = terrain_shader
+	#mesh.material = terrain_material
 	
 	## setup of the collision shape
 	heightmap_shape.map_width = 2
@@ -55,7 +56,7 @@ func _ready() -> void:
 	collision_shape.scale *= Vector3(down_scale_factor, 1.0, down_scale_factor)
 	
 	## enable or disable the color image in the shader
-	mesh.material.set("shader_parameter/use_real_colors", use_color_image)
+	%MeshInstance3D.mesh.material.set("shader_parameter/use_real_colors", use_color_image)
 	
 	## start the kinect and cameras if enabled
 	if use_kinect:
@@ -75,7 +76,7 @@ func _ready() -> void:
 		
 		# extract the camera intrinsics and apply them to the shader
 		# currently broken
-		var depth_params: Array = kinect.extract_camera_parameters(false)
+		# var depth_params: Array = kinect.extract_camera_parameters(false)
 		#if not depth_params.is_empty():
 			#filter_texture.set_lens_distortion_params(depth_params)
 	
@@ -196,7 +197,7 @@ func _physics_process(_delta: float) -> void:
 					# starts the marker placement
 					# once a marker is placed, they recursively call the placement of another
 					# -> cant be stopped (yet)
-					#$"../Game".place_objective()
+					$"../Game".place_objective()
 					game_running = true
 				# start continuous terrain updates
 				thread.start(update_sandbox)
@@ -271,7 +272,7 @@ func finish_update_depth(depth_image_rg8) -> void:
 		var texture = ImageTexture.create_from_image(image_rf)
 		
 		# pass texture to terrain mesh for vertice displacement, normal calculation and fragment coloring
-		mesh.material.set("shader_parameter/depth_texture", texture)
+		%MeshInstance3D.mesh.material.set("shader_parameter/depth_texture", texture)
 		
 		# use the filtered depth image to change the collision shape
 		set_heightmap(image_rf)

@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://hi1nksvjbpjj"]
+
+[ext_resource type="PackedScene" uid="uid://ddmhr4bqb46af" path="res://assets/environment_models/flower_purpleC.glb" id="1_h8wlv"]
+
+[node name="FlowerPurple" instance=ExtResource("1_h8wlv")]

@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://p4abuckl0a40"]
+
+[ext_resource type="PackedScene" uid="uid://ceo7cyo7ofeda" path="res://assets/environment_models/mushroom_tanGroup.glb" id="1_bi3w5"]
+
+[node name="Mushroom" instance=ExtResource("1_bi3w5")]

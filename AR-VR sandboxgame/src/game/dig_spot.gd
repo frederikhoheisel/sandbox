@@ -56,9 +56,10 @@ func spawn_tree() -> void:
 	var tree_scene = tree.instantiate()
 	add_child(tree_scene)
 	tree_scene.position.y += 50.0
-	tree_scene.snap_to_ground()
+	#tree_scene.snap_to_ground()
 	tree_planted.emit()
 	acorn.queue_free()
+
 
 ## snaps whole scene to the ground level
 func snap_to_ground() -> void:

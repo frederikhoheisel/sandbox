@@ -40,7 +40,7 @@ const float sigma_intensity = 0.05;
 const int kernel_size = 9;
 
 // exponential filter
-const float alpha = 0.1;
+const float alpha = 0.15;
 
 const float min_depth = 0.45;
 const float max_depth = 9.0;

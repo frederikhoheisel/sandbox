@@ -1,0 +1,10 @@
+[gd_scene load_steps=3 format=3 uid="uid://binegnva4ua68"]
+
+[ext_resource type="Script" uid="uid://ckidr7cqweean" path="res://src/foliage/grass_model.gd" id="1_fhgvj"]
+[ext_resource type="PackedScene" uid="uid://sylmwo3on81" path="res://src/foliage/snap_to_ground_component.tscn" id="2_oqav3"]
+
+[node name="GrassModel" type="Node3D"]
+script = ExtResource("1_fhgvj")
+
+[node name="SnapToGroundComponent" parent="." node_paths=PackedStringArray("model") instance=ExtResource("2_oqav3")]
+model = NodePath("..")

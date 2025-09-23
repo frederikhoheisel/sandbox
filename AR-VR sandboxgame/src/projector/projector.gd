@@ -4,7 +4,12 @@ extends Window
 
 @export var enable_projector: bool
 
+var calibration_meshes: Array
+var calibrating: bool = false
+
 @onready var camera_3d: Camera3D = $SubViewport/Camera3D
+@onready var callibration_mesh_container: Node = %CallibrationMeshContainer
+
 
 var sandbox_pos: Array = [
 		-40.3,	#left
@@ -18,15 +23,23 @@ var sandbox_width: float
 var sandbox_height: float
 
 func _ready() -> void:
-	_transform_projector_camera()
+	#_transform_projector_camera()
 	if not enable_projector:
 		self.queue_free()
-	sandbox_width = abs(sandbox_pos[0]) + abs(sandbox_pos[1])
-	sandbox_height = abs(sandbox_pos[2]) + abs(sandbox_pos[3])
-	sandbox_size = Vector2(sandbox_width, sandbox_height)
-	sandbox_center = Vector2((sandbox_pos[0] + sandbox_pos[1]) / 2.0, (sandbox_pos[2] + sandbox_pos[3]) / 2.0)
+	#sandbox_width = abs(sandbox_pos[0]) + abs(sandbox_pos[1])
+	#sandbox_height = abs(sandbox_pos[2]) + abs(sandbox_pos[3])
+	#sandbox_size = Vector2(sandbox_width, sandbox_height)
+	#sandbox_center = Vector2((sandbox_pos[0] + sandbox_pos[1]) / 2.0, (sandbox_pos[2] + sandbox_pos[3]) / 2.0)
 	#$"../MeshInstance3D".position = Vector3(sandbox_center.x, -10.0, sandbox_center.y)
 	#$"../MeshInstance3D".mesh.size = Vector3(sandbox_width, 1.0, sandbox_height)
+	calibration_meshes = callibration_mesh_container.get_children()
+
+
+func _process(_delta: float) -> void:
+	if calibrating:
+		_position_corners()
+	if Input.is_action_just_pressed("calibrate"):
+		_start_callibration()
 
 
 ## depricated
@@ -87,7 +100,69 @@ func _transform_projector_camera() -> void:
 	camera_3d.size = fov_size
 	camera_3d.rotation_degrees.x = rotation_deg_x
 
+func _start_callibration() -> void:
+	%MeshInstance3D.visible = false
+	
+	for corner in calibration_meshes:
+		corner.visible = true
+	
+	calibration_meshes[0].position = Vector3(20.0, 0.0, 20.0)
+	calibration_meshes[1].position = Vector3(-20.0, 0.0, 20.0)
+	calibration_meshes[2].position = Vector3(20.0, 0.0, -20.0)
+	calibration_meshes[3].position = Vector3(-20.0, 0.0, -20.0)
+	
+	current_callibration_mesh = 0
+	calibration_meshes[current_callibration_mesh].mesh.material.albedo_color = Color.CYAN
+	calibrating = true
+
+
+var current_callibration_mesh: int = 0
+func _position_corners() -> void:
+	var direction = Input.get_vector("ui_right", "ui_left", "ui_down", "ui_up") * 0.05
+	calibration_meshes[current_callibration_mesh].position += Vector3(direction.x, 0.0, direction.y)
+	
+	if Input.is_action_just_pressed("next_callibration_point"):
+		calibration_meshes[current_callibration_mesh].mesh.material.albedo_color = Color.RED
+		if current_callibration_mesh >= 3:
+			calibrating = false
+			_callibrate_projector()
+			return
+		current_callibration_mesh += 1
+		calibration_meshes[current_callibration_mesh].mesh.material.albedo_color = Color.CYAN
+
+
+func _callibrate_projector():
+	var corners: Array[Vector3]
+	for corner in calibration_meshes:
+		corner.visible = false
+		corners.append(corner.position)
+	print(corners)
+	
+	var center: Vector3 = (corners[0] + corners[1] + corners[2] + corners[3])
+	
+	print(center)
+	$"../Sandbox".position.x = center.x
+	$"../Sandbox".position.z = center.z
+
+	#camera_3d.position = Vector3(
+		#center.x,
+		#100.0,
+		#center.z
+	#)
+	
+	print($"../Sandbox".position)
+	camera_3d.size = (corners[0].z - corners[2].z + corners[1].z - corners[3].z) / 2.0
+	print(camera_3d.size)
+	
+	%MeshInstance3D.visible = true
+
+
 func print_cam_params():
 	printt("position: ", pos)
 	printt("fov_size: ", fov_size)
 	printt("x rot: ", rotation_deg_x)
+
+
+func _notification(what):
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		print_cam_params()

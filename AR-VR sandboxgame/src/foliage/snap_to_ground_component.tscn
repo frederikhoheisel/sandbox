@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://sylmwo3on81"]
+
+[ext_resource type="Script" uid="uid://dps17wtqnymg7" path="res://src/foliage/snap_to_ground_component.gd" id="1_502a0"]
+
+[node name="SnapToGroundComponent" type="Node3D"]
+script = ExtResource("1_502a0")
+
+[node name="RayCast3D" type="RayCast3D" parent="."]
+enabled = false
+target_position = Vector3(0, -999, 0)
+collision_mask = 16

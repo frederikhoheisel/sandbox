@@ -1,14 +1,152 @@
-[gd_scene load_steps=2 format=3 uid="uid://bx2ml66a5x03l"]
+[gd_scene load_steps=12 format=3 uid="uid://bx2ml66a5x03l"]
 
 [ext_resource type="Script" uid="uid://bmqmlhrqsbd0t" path="res://src/foliage/tree.gd" id="1_0of0v"]
+[ext_resource type="Texture2D" uid="uid://ogkph4j4q1q2" path="res://assets/grass1-bl/grass1-albedo3.png" id="2_7ejhk"]
+[ext_resource type="Texture2D" uid="uid://b67677ogcxnk4" path="res://assets/grass1-bl/grass1-ao.png" id="3_gqjsc"]
+[ext_resource type="Texture2D" uid="uid://c6r23exdl7uq2" path="res://assets/grass1-bl/grass1-height.png" id="4_ojjfu"]
+[ext_resource type="Texture2D" uid="uid://cjiyraa5rvi3r" path="res://assets/leafy-grass2-bl/leafy-grass2-metallic.png" id="5_0crvg"]
+[ext_resource type="Texture2D" uid="uid://xmbocuhygutb" path="res://assets/grass1-bl/grass1-normal1-ogl.png" id="6_0crvg"]
+[ext_resource type="Texture2D" uid="uid://0vwdmykn6o5t" path="res://assets/grass1-bl/grass1-rough.png" id="7_1mmgo"]
+[ext_resource type="PackedScene" uid="uid://sylmwo3on81" path="res://src/foliage/snap_to_ground_component.tscn" id="8_gqjsc"]
+
+[sub_resource type="Shader" id="Shader_tk41s"]
+code = "// NOTE: Shader automatically converted from Godot Engine 4.4.1.stable's StandardMaterial3D.
+
+shader_type spatial;
+render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_toon, specular_toon;
+
+uniform vec4 albedo : source_color;
+uniform sampler2D texture_albedo : source_color, filter_linear_mipmap, repeat_enable;
+uniform ivec2 albedo_texture_size;
+uniform float point_size : hint_range(0.1, 128.0, 0.1);
+
+uniform float roughness : hint_range(0.0, 1.0);
+uniform sampler2D texture_metallic : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform vec4 metallic_texture_channel;
+uniform sampler2D texture_roughness : hint_roughness_r, filter_linear_mipmap, repeat_enable;
+
+uniform float specular : hint_range(0.0, 1.0, 0.01);
+uniform float metallic : hint_range(0.0, 1.0, 0.01);
+
+uniform sampler2D texture_normal : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
+uniform float normal_scale : hint_range(-16.0, 16.0);
+
+uniform sampler2D texture_ambient_occlusion : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform vec4 ao_texture_channel;
+uniform float ao_light_affect : hint_range(0.0, 1.0, 0.01);
+
+uniform sampler2D texture_heightmap : hint_default_black, filter_linear_mipmap, repeat_enable;
+uniform float heightmap_scale : hint_range(-16.0, 16.0, 0.001);
+uniform int heightmap_min_layers : hint_range(1, 64);
+uniform int heightmap_max_layers : hint_range(1, 64);
+uniform vec2 heightmap_flip;
+
+uniform vec3 uv1_scale;
+uniform vec3 uv1_offset;
+uniform vec3 uv2_scale;
+uniform vec3 uv2_offset;
+
+void vertex() {
+	UV = UV * uv1_scale.xy + uv1_offset.xy;
+}
+
+void fragment() {
+	vec2 base_uv = UV;
+
+	{
+		// Height: Enabled
+		vec3 view_dir = normalize(normalize(-VERTEX + EYE_OFFSET) * mat3(TANGENT * heightmap_flip.x, -BINORMAL * heightmap_flip.y, NORMAL));
+
+		// Height Deep Parallax: Enabled
+		float num_layers = mix(float(heightmap_max_layers), float(heightmap_min_layers), abs(dot(vec3(0.0, 0.0, 1.0), view_dir)));
+		float layer_depth = 1.0 / num_layers;
+		float current_layer_depth = 0.0;
+		vec2 p = view_dir.xy * heightmap_scale * 0.01;
+		vec2 delta = p / num_layers;
+		vec2 ofs = base_uv;
+		float depth = 1.0 - texture(texture_heightmap, ofs).r;
+
+		float current_depth = 0.0;
+		while (current_depth < depth) {
+			ofs -= delta;
+			depth = 1.0 - texture(texture_heightmap, ofs).r;
+
+			current_depth += layer_depth;
+		}
+
+		vec2 prev_ofs = ofs + delta;
+		float after_depth = depth - current_depth;
+		float before_depth = (1.0 - texture(texture_heightmap, prev_ofs).r) - current_depth + layer_depth;
+
+		float weight = after_depth / (after_depth - before_depth);
+		ofs = mix(ofs, prev_ofs, weight);
+		base_uv = ofs;
+	}
+
+	vec4 albedo_tex = texture(texture_albedo, base_uv);
+	ALBEDO = albedo.rgb * albedo_tex.rgb;
+
+	float metallic_tex = dot(texture(texture_metallic, base_uv), metallic_texture_channel);
+	METALLIC = metallic_tex * metallic;
+	SPECULAR = specular;
+
+	vec4 roughness_texture_channel = vec4(1.0, 0.0, 0.0, 0.0);
+	float roughness_tex = dot(texture(texture_roughness, base_uv), roughness_texture_channel);
+	ROUGHNESS = roughness_tex * roughness;
+
+	// Normal Map: Enabled
+	NORMAL_MAP = texture(texture_normal, base_uv).rgb;
+	NORMAL_MAP_DEPTH = normal_scale;
+
+	// Ambient Occlusion: Enabled
+	AO = dot(texture(texture_ambient_occlusion, base_uv), ao_texture_channel);
+	AO_LIGHT_AFFECT = ao_light_affect;
+}
+"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_isn2n"]
+render_priority = 0
+shader = SubResource("Shader_tk41s")
+shader_parameter/albedo = Color(1, 1, 1, 1)
+shader_parameter/texture_albedo = ExtResource("2_7ejhk")
+shader_parameter/albedo_texture_size = Vector2i(2048, 2048)
+shader_parameter/point_size = 1.0
+shader_parameter/roughness = 1.0
+shader_parameter/texture_metallic = ExtResource("5_0crvg")
+shader_parameter/metallic_texture_channel = Vector4(1, 0, 0, 0)
+shader_parameter/texture_roughness = ExtResource("7_1mmgo")
+shader_parameter/specular = 1.0
+shader_parameter/metallic = 0.0
+shader_parameter/texture_normal = ExtResource("6_0crvg")
+shader_parameter/normal_scale = 1.0
+shader_parameter/texture_ambient_occlusion = ExtResource("3_gqjsc")
+shader_parameter/ao_texture_channel = Vector4(1, 0, 0, 0)
+shader_parameter/ao_light_affect = 0.0
+shader_parameter/texture_heightmap = ExtResource("4_ojjfu")
+shader_parameter/heightmap_scale = 2.154
+shader_parameter/heightmap_min_layers = 8
+shader_parameter/heightmap_max_layers = 32
+shader_parameter/heightmap_flip = Vector2(1, 1)
+shader_parameter/uv1_scale = Vector3(1, 1, 1)
+shader_parameter/uv1_offset = Vector3(0, 0, 0)
+shader_parameter/uv2_scale = Vector3(0, 0, 0)
+shader_parameter/uv2_offset = Vector3(0, 0, 0)
+
+[sub_resource type="QuadMesh" id="QuadMesh_7ejhk"]
+material = SubResource("ShaderMaterial_isn2n")
 
 [node name="Tree" type="Node3D"]
 script = ExtResource("1_0of0v")
 
-[node name="Model" type="Node3D" parent="."]
+[node name="TreeModelContainer" type="Node3D" parent="."]
 transform = Transform3D(0.01, 0, 0, 0, 0.01, 0, 0, 0, 0.01, 0, 0, 0)
 
-[node name="RayCast3D" type="RayCast3D" parent="."]
-enabled = false
-target_position = Vector3(0, -99, 0)
-collision_mask = 16
+[node name="SnapToGroundComponent" parent="." node_paths=PackedStringArray("model") instance=ExtResource("8_gqjsc")]
+model = NodePath("../TreeModelContainer")
+
+[node name="GrassModelContainer" type="Node3D" parent="."]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 1.38606, 3.31428)
+visible = false
+mesh = SubResource("QuadMesh_7ejhk")
