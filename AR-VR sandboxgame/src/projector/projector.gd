@@ -3,6 +3,7 @@ extends Window
 ## Creates a window on the second screen for the projection on the sand surface
 
 @export var enable_projector: bool
+@export var sandbox: AnimatableBody3D
 
 var calibration_meshes: Array
 var calibrating: bool = false
@@ -101,6 +102,10 @@ func _transform_projector_camera() -> void:
 	camera_3d.rotation_degrees.x = rotation_deg_x
 
 func _start_callibration() -> void:
+	print("--- CALIBRATION STARTED ---")
+	print("position the sqaures to the corners of the sandbox using the arrow keys")
+	print("press 'tab' to select the next square")
+	
 	%MeshInstance3D.visible = false
 	
 	for corner in calibration_meshes:
@@ -136,23 +141,27 @@ func _callibrate_projector():
 	for corner in calibration_meshes:
 		corner.visible = false
 		corners.append(corner.position)
-	print(corners)
+	#print(corners)
 	
-	var center: Vector3 = (corners[0] + corners[1] + corners[2] + corners[3])
+	var center: Vector3 = (corners[0] + corners[1] + corners[2] + corners[3] + Vector3(5.2, 0.0, 14.56)) * 0.25
 	
-	print(center)
-	$"../Sandbox".position.x = center.x
-	$"../Sandbox".position.z = center.z
-
+	printt("center:", center)
+	sandbox.position = Vector3(center.x, sandbox.global_position.y, center.z)
+	
 	#camera_3d.position = Vector3(
 		#center.x,
 		#100.0,
 		#center.z
 	#)
 	
-	print($"../Sandbox".position)
-	camera_3d.size = (corners[0].z - corners[2].z + corners[1].z - corners[3].z) / 2.0
-	print(camera_3d.size)
+	#print(sandbox.global_position)
+	var scale = 20.0 * ((corners[0].z - corners[2].z + corners[1].z - corners[3].z) / 200.0)
+	printt("scale:", scale)
+	#camera_3d.size = (corners[0].z - corners[2].z + corners[1].z - corners[3].z) / 2.0
+	#print(camera_3d.size)
+	sandbox.SANDBOX_SCALE = scale
+	#print(sandbox.SANDBOX_SCALE)
+	sandbox.refresh_scale()
 	
 	%MeshInstance3D.visible = true
 

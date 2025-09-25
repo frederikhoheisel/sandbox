@@ -22,7 +22,7 @@ const DEPTH := 9.0
 const PIXEL_WIDTH := 640
 const PIXEL_DEPTH := 576
 
-const SANDBOX_SCALE := 20.0
+var SANDBOX_SCALE := 20.0
 var down_scale_factor: float = 8.0 # for downscaling the collision shape
 var thread: Thread
 
@@ -38,7 +38,7 @@ func _ready() -> void:
 	%MeshInstance3D.mesh.subdivide_width = PIXEL_WIDTH
 	%MeshInstance3D.mesh.subdivide_depth = PIXEL_DEPTH
 	#%MeshInstance3D.mesh = mesh
-	%MeshInstance3D.scale *= SANDBOX_SCALE
+	%MeshInstance3D.scale = Vector3(SANDBOX_SCALE, SANDBOX_SCALE, SANDBOX_SCALE)
 	
 	## setup of the material and corresponding shader for the terrain
 	## done in editor to change uniforms
@@ -85,12 +85,24 @@ func _ready() -> void:
 	## initialise thred
 	thread = Thread.new()
 
+
+func refresh_scale() -> void:
+	%MeshInstance3D.scale = Vector3(SANDBOX_SCALE, SANDBOX_SCALE, SANDBOX_SCALE)
+	
+	collision_shape.scale = Vector3(WIDTH / PIXEL_WIDTH, -10.0, DEPTH / PIXEL_DEPTH)
+	collision_shape.scale *= SANDBOX_SCALE
+	collision_shape.scale *= Vector3(down_scale_factor, 1.0, down_scale_factor)
+	
+	#adjust_position_of_sandbox()
+
+
 ## moves the sandbox so the center is positioned 5 meters below the VR user
 func adjust_position_of_sandbox() -> void:
 	depth_test_ray_cast_3d.force_raycast_update()
 	var depth = depth_test_ray_cast_3d.get_collision_point().y
-	#print(depth)
+	#printt("tested depth:", depth)
 	self.position.y = -5.0 - depth
+	#printt("position:", self.position)
 
 
 ## downsamples the filtered depth image and applies it to the heightmapshape to update the collision shape
