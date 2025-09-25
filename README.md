@@ -15,6 +15,9 @@ The Kinect sdk include and lib paths are hardcoded to
 
 in the SConstruct file. If the sdk path is different, change the paths in this file and rebuild the extension using scons.
 
+
+If the projector window is not located correctly you can change it. :)
+
 ## Usage
 - with the program running, press 'space' to toggle terrain updates and start the game
 - if there is no VR HMD connected to the pc, you can control the camera with the mouse and 'wasd'
